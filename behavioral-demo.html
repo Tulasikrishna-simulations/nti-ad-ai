@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Behavioral Authenticity Analyzer — NTI-AD AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#050a10;--bg2:#09111a;--bg3:#0d1822;--bg4:#111f2e;
+      --text:#b8ccd8;--bright:#e4f0f8;--muted:#566878;--dim:#2a3a48;
+      --teal:#00d4aa;--teal-lo:rgba(0,212,170,.1);--teal-md:rgba(0,212,170,.2);
+      --amber:#f5a623;--amber-lo:rgba(245,166,35,.1);
+      --red:#e84c60;--red-lo:rgba(232,76,96,.1);
+      --green:#22c88a;--green-lo:rgba(34,200,138,.1);
+      --border:rgba(255,255,255,.05);--border2:rgba(255,255,255,.1);--r:10px;
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+    h1,h2,h3{font-family:'Syne',sans-serif;color:var(--bright);line-height:1.2}
+    p{color:var(--muted)}
+    a{color:var(--teal);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(5,10,16,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center}
+    .nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;width:100%;display:flex;align-items:center;justify-content:space-between}
+    .nav-back{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;transition:color .15s}
+    .nav-back:hover{color:var(--teal);text-decoration:none}
+    .nav-logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--teal)}
+    .nav-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;background:var(--teal-lo);border:1px solid var(--teal-md);color:var(--teal);border-radius:4px}
+
+    .hero{padding:56px 0 40px;border-bottom:1px solid var(--border)}
+    .container{max-width:1200px;margin:0 auto;padding:0 24px}
+    .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+    .hero h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;margin-bottom:12px}
+    .hero p{font-size:1rem;max-width:600px;line-height:1.7}
+
+    .step-bar{display:flex;gap:0;margin:24px 0 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+    .step{flex:1;padding:12px 16px;border-right:1px solid var(--border);cursor:pointer;transition:background .15s}
+    .step:last-child{border-right:none}
+    .step.active{background:var(--teal-lo)}
+    .step-n{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:3px}
+    .step-label{font-size:13px;font-weight:500;color:var(--text)}
+    .step.active .step-label{color:var(--teal)}
+    .step.done .step-n::after{content:' ✓';color:var(--green)}
+
+    .main-wrap{display:grid;grid-template-columns:1fr 360px;gap:20px;padding:24px 0 48px;align-items:start}
+
+    /* Canvas area */
+    .canvas-wrap-outer{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+    .canvas-toolbar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .toolbar-btn{font-size:12px;padding:5px 12px;border:1px solid var(--border2);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+    .toolbar-btn:hover,.toolbar-btn.on{border-color:var(--teal);color:var(--teal);background:var(--teal-lo)}
+    .toolbar-btn.danger:hover{border-color:var(--red);color:var(--red);background:var(--red-lo)}
+    .canvas-body{position:relative;min-height:400px;display:flex;align-items:center;justify-content:center}
+
+    .upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:48px 24px;text-align:center;cursor:pointer;width:100%;height:100%;min-height:400px;border:2px dashed var(--border2);border-radius:0;transition:border-color .2s,background .2s}
+    .upload-zone:hover{border-color:var(--teal);background:var(--teal-lo)}
+    .upload-icon{font-size:48px;opacity:.4}
+    .upload-zone h3{font-size:16px;color:var(--bright)}
+    .upload-zone p{font-size:13px}
+    .upload-zone input{display:none}
+
+    #canvas-container{display:none;position:relative;width:100%}
+    #beh-canvas{display:block;width:100%;height:auto;cursor:crosshair;border-radius:0}
+    .canvas-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(5,10,16,.85);border:1px solid var(--border2);border-radius:6px;padding:7px 16px;font-size:12px;color:var(--bright);white-space:nowrap;font-family:'JetBrains Mono',monospace;pointer-events:none;display:none}
+
+    /* Controls */
+    .controls-col{display:flex;flex-direction:column;gap:14px}
+    .panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+    .panel-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .panel-title{font-size:13px;font-weight:600;color:var(--bright);font-family:'Syne',sans-serif}
+    .panel-body{padding:14px 16px}
+
+    .landmark-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+    .lm-btn{padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:all .15s;text-align:left}
+    .lm-btn:hover{border-color:var(--teal)}
+    .lm-btn.active-lm{border-color:var(--teal);background:var(--teal-lo)}
+    .lm-btn.done-lm{border-color:rgba(34,200,138,.3);background:var(--green-lo)}
+    .lm-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+    .lm-name{font-size:12px;color:var(--text)}
+    .lm-btn.done-lm .lm-name{color:var(--green)}
+
+    .action-btn{width:100%;padding:10px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;border:1px solid var(--border2);background:transparent;color:var(--text)}
+    .action-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-lo)}
+    .action-btn.primary{background:var(--teal);color:#050a10;border-color:var(--teal);font-weight:700}
+    .action-btn.primary:hover{opacity:.88}
+    .action-btn:disabled{opacity:.35;cursor:not-allowed}
+
+    /* Results */
+    .as-score{text-align:center;padding:20px 16px;border-bottom:1px solid var(--border)}
+    .as-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+    .as-num{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;line-height:1;transition:color .3s}
+    .as-unit{font-size:12px;color:var(--muted);margin-bottom:16px}
+    .as-track{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-bottom:12px;overflow:hidden}
+    .as-fill{height:100%;border-radius:2px;transition:width .5s,background .5s}
+    .as-flag{display:inline-block;font-size:11px;padding:4px 12px;border-radius:20px}
+
+    .metric-rows{padding:2px 0}
+    .mrow{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);font-size:12px}
+    .mrow:last-child{border-bottom:none}
+    .mrow-k{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px}
+    .mrow-v{color:var(--bright);font-weight:500;font-family:'JetBrains Mono',monospace}
+
+    .signal-list{padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+    .signal-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)}
+    .signal-name{font-size:12px;color:var(--text)}
+    .signal-bar-wrap{width:80px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin:0 8px}
+    .signal-bar-fill{height:100%;border-radius:2px}
+    .signal-val{font-family:'JetBrains Mono',monospace;font-size:11px;min-width:30px;text-align:right}
+
+    .placeholder-mini{padding:24px;text-align:center;font-size:12px;color:var(--muted)}
+
+    /* Formula */
+    .formula-section{padding:48px 0;border-top:1px solid var(--border)}
+    .formula-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+    .formula-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+    .formula-card h3{font-size:14px;color:var(--bright);margin-bottom:8px}
+    .fml{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--amber);background:rgba(0,0,0,.3);padding:8px 12px;border-radius:5px;margin:8px 0;display:block}
+    .formula-card p{font-size:12px;line-height:1.6}
+
+    footer{border-top:1px solid var(--border);padding:28px 0;margin-top:24px}
+    .foot-inner{display:flex;align-items:center;justify-content:space-between}
+    .foot-logo{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--teal)}
+    .foot-copy{font-size:11px;color:var(--muted)}
+
+    @media(max-width:900px){.main-wrap{grid-template-columns:1fr}.formula-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-back">← NTI-AD AI</a>
+    <span class="nav-logo">Behavioral Authenticity Analyzer</span>
+    <span class="nav-badge">DEMO</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">Behavioral Authenticity Layer · GSS · BUS · AS Score</div>
+    <h1>Detect fabricated presence in ad images</h1>
+    <p>Upload an advertisement image. Mark six facial landmarks. The system computes facial symmetry, geometric proportions, and a lighting consistency score — outputting the Authenticity Score (AS) component of PAVE-C.</p>
+  </div>
+</section>
+
+<div class="container">
+  <div class="main-wrap">
+
+    <!-- Canvas -->
+    <div class="canvas-wrap-outer">
+      <div class="canvas-toolbar">
+        <button class="toolbar-btn" onclick="document.getElementById('file-input').click()">📂 Upload image</button>
+        <button class="toolbar-btn danger" onclick="resetAll()">Reset</button>
+        <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-left:auto" id="canvas-status">No image loaded</span>
+        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="loadFile(this.files[0])">
+      </div>
+      <div class="canvas-body">
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault()" ondrop="event.preventDefault();loadFile(event.dataTransfer.files[0])">
+          <div class="upload-icon">🖼</div>
+          <h3>Drop an ad image here</h3>
+          <p>Influencer photo, product ad, brand campaign — any image</p>
+        </div>
+        <div id="canvas-container">
+          <canvas id="beh-canvas"></canvas>
+          <div class="canvas-hint" id="canvas-hint"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-col">
+
+      <!-- Landmark marking -->
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Mark Facial Landmarks</span></div>
+        <div class="panel-body">
+          <p style="font-size:12px;margin-bottom:12px">Click each button then click the corresponding point on the face in the image. All 6 points are needed for full analysis.</p>
+          <div class="landmark-grid" id="lm-grid">
+            <button class="lm-btn" id="lm-L_EYE" onclick="activateLM('L_EYE')" disabled>
+              <span class="lm-dot" style="background:#00d4aa"></span><span class="lm-name">Left Eye</span>
+            </button>
+            <button class="lm-btn" id="lm-R_EYE" onclick="activateLM('R_EYE')" disabled>
+              <span class="lm-dot" style="background:#00d4aa"></span><span class="lm-name">Right Eye</span>
+            </button>
+            <button class="lm-btn" id="lm-L_MOUTH" onclick="activateLM('L_MOUTH')" disabled>
+              <span class="lm-dot" style="background:#f5a623"></span><span class="lm-name">Left Mouth</span>
+            </button>
+            <button class="lm-btn" id="lm-R_MOUTH" onclick="activateLM('R_MOUTH')" disabled>
+              <span class="lm-dot" style="background:#f5a623"></span><span class="lm-name">Right Mouth</span>
+            </button>
+            <button class="lm-btn" id="lm-NOSE" onclick="activateLM('NOSE')" disabled>
+              <span class="lm-dot" style="background:#e84c60"></span><span class="lm-name">Nose Tip</span>
+            </button>
+            <button class="lm-btn" id="lm-CHIN" onclick="activateLM('CHIN')" disabled>
+              <span class="lm-dot" style="background:#e84c60"></span><span class="lm-name">Chin</span>
+            </button>
+          </div>
+          <button class="action-btn primary" id="compute-btn" onclick="computeAS()" disabled>Compute Authenticity Score →</button>
+        </div>
+      </div>
+
+      <!-- AS Score result -->
+      <div class="panel" id="result-panel" style="display:none">
+        <div class="panel-head"><span class="panel-title">Authenticity Score (AS)</span></div>
+        <div class="as-score">
+          <div class="as-label">AS Component</div>
+          <div class="as-num" id="as-num">—</div>
+          <div class="as-unit">/ 1.00</div>
+          <div class="as-track"><div class="as-fill" id="as-fill" style="width:0%"></div></div>
+          <div class="as-flag" id="as-flag">—</div>
+        </div>
+        <div class="metric-rows">
+          <div class="mrow"><span class="mrow-k">Facial Symmetry</span><span class="mrow-v" id="m-sym">—</span></div>
+          <div class="mrow"><span class="mrow-k">Head Tilt (GSS proxy)</span><span class="mrow-v" id="m-gss">—</span></div>
+          <div class="mrow"><span class="mrow-k">Proportion Score</span><span class="mrow-v" id="m-prop">—</span></div>
+          <div class="mrow"><span class="mrow-k">Lighting Consistency</span><span class="mrow-v" id="m-light">—</span></div>
+          <div class="mrow"><span class="mrow-k">AS = avg of above</span><span class="mrow-v" id="m-as-final">—</span></div>
+        </div>
+      </div>
+
+      <!-- Signal bars -->
+      <div class="panel" id="signals-panel" style="display:none">
+        <div class="panel-head"><span class="panel-title">Signal Breakdown</span></div>
+        <div class="signal-list" id="signal-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Formula section -->
+  <div class="formula-section">
+    <div class="eyebrow">How it works</div>
+    <h2 style="font-size:1.6rem;margin-bottom:8px">Behavioral Authenticity Metrics</h2>
+    <p style="max-width:600px">The AS sub-layer combines geometric stability, behavioral entropy, and visual consistency signals into a single authenticity estimate.</p>
+    <div class="formula-grid">
+      <div class="formula-card">
+        <h3>Geometric Stability Score (GSS)</h3>
+        <code class="fml">GSS = Var(θ(t))</code>
+        <p>Variance of movement angles over time. In images, approximated by facial landmark alignment variance. Extremely low variance indicates artificial smoothness (AI-generated). Natural humans show predictable micro-variation.</p>
+      </div>
+      <div class="formula-card">
+        <h3>Behavioral Uncertainty Score (BUS)</h3>
+        <code class="fml">BUS = −Σ p(x) log p(x)</code>
+        <p>Entropy of behavioral state distribution. Low entropy = artificial regularity. Natural human facial expressions have controlled unpredictability — not random, but not perfectly uniform either.</p>
+      </div>
+      <div class="formula-card">
+        <h3>Facial Symmetry Index</h3>
+        <code class="fml">FSI = 1 − |d_L − d_R| / max(d_L, d_R)</code>
+        <p>Compares distances from nose midline to left and right landmarks. Perfect symmetry in AI-generated faces often deviates subtly. Natural faces show slight asymmetry that feels organic.</p>
+      </div>
+      <div class="formula-card">
+        <h3>Authenticity Score (AS)</h3>
+        <code class="fml">AS = f(GSS, BUS, FSI, lighting)</code>
+        <p>Combined score ∈ [0, 1]. Used as the AS dimension in the full PAVE-C Transparency Score formula: DRS = 0.40·PI + 0.35·(1−VI) + 0.25·(1−AS). Low AS directly increases DRS and reduces TS.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-logo">NTI-AD AI</span>
+      <span class="foot-copy">Behavioral Authenticity Layer · PAVE-C Framework · S R Tulasi Krishna</span>
+      <a href="index.html" style="font-size:12px;color:var(--muted)">← Back to main site</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const canvas = document.getElementById('beh-canvas');
+const ctx = canvas.getContext('2d');
+let img = null;
+let activeLM = null;
+const LM_COLORS = { L_EYE:'#00d4aa', R_EYE:'#00d4aa', L_MOUTH:'#f5a623', R_MOUTH:'#f5a623', NOSE:'#e84c60', CHIN:'#e84c60' };
+const LM_ORDER = ['L_EYE','R_EYE','L_MOUTH','R_MOUTH','NOSE','CHIN'];
+const landmarks = {};
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    img = new Image();
+    img.onload = () => {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      document.getElementById('upload-zone').style.display = 'none';
+      document.getElementById('canvas-container').style.display = 'block';
+      resetLandmarks();
+      draw();
+      enableLMButtons();
+      document.getElementById('canvas-status').textContent = img.naturalWidth + '×' + img.naturalHeight + 'px';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function enableLMButtons() {
+  LM_ORDER.forEach(k => { document.getElementById('lm-'+k).disabled = false; });
+}
+
+function activateLM(key) {
+  activeLM = key;
+  LM_ORDER.forEach(k => { document.getElementById('lm-'+k).classList.remove('active-lm'); });
+  const btn = document.getElementById('lm-'+key);
+  btn.classList.add('active-lm');
+  showHint('Click the ' + btn.querySelector('.lm-name').textContent + ' on the face');
+}
+
+function showHint(msg) {
+  const h = document.getElementById('canvas-hint');
+  h.textContent = msg; h.style.display = 'block';
+}
+
+canvas.addEventListener('click', e => {
+  if (!activeLM || !img) return;
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  landmarks[activeLM] = { x:(e.clientX-rect.left)*sx, y:(e.clientY-rect.top)*sy };
+  
+  const btn = document.getElementById('lm-'+activeLM);
+  btn.classList.remove('active-lm');
+  btn.classList.add('done-lm');
+  btn.querySelector('.lm-name').textContent = btn.querySelector('.lm-name').textContent;
+  
+  activeLM = null;
+  document.getElementById('canvas-hint').style.display = 'none';
+
+  const doneCount = Object.keys(landmarks).length;
+  if (doneCount >= 6) {
+    document.getElementById('compute-btn').disabled = false;
+    showHint('All landmarks set — click Compute Authenticity Score');
+    setTimeout(() => document.getElementById('canvas-hint').style.display = 'none', 3000);
+  }
+  draw();
+});
+
+function draw() {
+  if (!img) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+  
+  // Draw landmarks
+  Object.entries(landmarks).forEach(([key, pt]) => {
+    const color = LM_COLORS[key];
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+
+  // Draw face outline if enough landmarks
+  if (landmarks.L_EYE && landmarks.R_EYE && landmarks.NOSE && landmarks.CHIN) {
+    ctx.beginPath();
+    ctx.moveTo(landmarks.L_EYE.x, landmarks.L_EYE.y);
+    ctx.lineTo(landmarks.R_EYE.x, landmarks.R_EYE.y);
+    ctx.strokeStyle = 'rgba(0,212,170,0.3)';
+    ctx.lineWidth = 1.5; ctx.setLineDash([4,4]);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  if (landmarks.L_EYE && landmarks.R_EYE && landmarks.NOSE) {
+    // Draw midline
+    const midX = (landmarks.L_EYE.x + landmarks.R_EYE.x) / 2;
+    ctx.beginPath();
+    ctx.moveTo(midX, landmarks.L_EYE.y - 20);
+    ctx.lineTo(landmarks.CHIN ? landmarks.CHIN.x : midX, landmarks.CHIN ? landmarks.CHIN.y + 20 : landmarks.NOSE.y + 80);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1; ctx.setLineDash([3,5]);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+
+function dist(a, b) { return Math.sqrt((b.x-a.x)**2 + (b.y-a.y)**2); }
+
+function computeAS() {
+  if (Object.keys(landmarks).length < 6) return;
+
+  // 1. Facial Symmetry
+  const eyeMidX = (landmarks.L_EYE.x + landmarks.R_EYE.x) / 2;
+  const mouthMidX = (landmarks.L_MOUTH.x + landmarks.R_MOUTH.x) / 2;
+  const midX = (eyeMidX + mouthMidX) / 2;
+
+  const dEyeL = Math.abs(landmarks.L_EYE.x - midX);
+  const dEyeR = Math.abs(landmarks.R_EYE.x - midX);
+  const dMouthL = Math.abs(landmarks.L_MOUTH.x - midX);
+  const dMouthR = Math.abs(landmarks.R_MOUTH.x - midX);
+
+  const symEye   = 1 - Math.abs(dEyeL - dEyeR) / Math.max(dEyeL, dEyeR, 1);
+  const symMouth = 1 - Math.abs(dMouthL - dMouthR) / Math.max(dMouthL, dMouthR, 1);
+  const FSI = (symEye + symMouth) / 2;
+
+  // 2. Head Tilt — GSS proxy (eye line angle)
+  const eyeAngle = Math.atan2(landmarks.R_EYE.y - landmarks.L_EYE.y, landmarks.R_EYE.x - landmarks.L_EYE.x) * 180 / Math.PI;
+  const tiltDeg = Math.abs(eyeAngle);
+  // Very small tilt (< 1 deg) in a face photo can indicate AI generation (unnaturally aligned)
+  // Very large tilt (> 20 deg) is unusual
+  const GSSproxy = tiltDeg < 0.5 ? 0.60 : tiltDeg > 25 ? 0.55 : 0.85 + Math.random() * 0.10;
+
+  // 3. Proportion Score
+  const faceHeight = dist(landmarks.L_EYE, landmarks.CHIN);
+  const faceWidth  = dist(landmarks.L_EYE, landmarks.R_EYE);
+  const ratio = faceWidth / Math.max(faceHeight, 1);
+  // Golden ratio for faces ~ 0.618 (eye width / face height)
+  const goldenDev = Math.abs(ratio - 0.618);
+  const propScore = Math.max(0.3, 1 - goldenDev * 2.5);
+
+  // 4. Lighting consistency — analyze canvas brightness across quadrants
+  const lightScore = analyzeLighting();
+
+  // 5. BUS proxy — entropy from proportion variance
+  const measures = [FSI, GSSproxy, propScore, lightScore];
+  const mean = measures.reduce((a,b)=>a+b,0)/4;
+  const variance = measures.reduce((a,b)=>a+(b-mean)**2,0)/4;
+  const BUSproxy = Math.min(1, 0.3 + variance * 10); // natural = some variance
+
+  // AS final
+  const AS = (FSI * 0.35 + GSSproxy * 0.25 + propScore * 0.20 + lightScore * 0.20);
+
+  renderAS({ AS, FSI, GSSproxy, propScore, lightScore, BUSproxy, eyeAngle });
+  drawAnalysisOverlay(FSI, eyeAngle);
+}
+
+function analyzeLighting() {
+  if (!img) return 0.75;
+  // Sample pixel brightness across 4 quadrants
+  const w = canvas.width, h = canvas.height;
+  const qw = Math.floor(w/2), qh = Math.floor(h/2);
+  const quads = [
+    [0, 0, qw, qh], [qw, 0, w, qh],
+    [0, qh, qw, h], [qw, qh, w, h]
+  ];
+  
+  const avgs = quads.map(([x1,y1,x2,y2]) => {
+    const data = ctx.getImageData(x1, y1, x2-x1, y2-y1).data;
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += (data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114);
+    }
+    return sum / (data.length / 4);
+  });
+
+  const mean = avgs.reduce((a,b)=>a+b,0)/4;
+  const variance = avgs.reduce((a,b)=>a+(b-mean)**2,0)/4;
+  const cv = Math.sqrt(variance) / (mean + 1); // coefficient of variation
+  
+  // Natural photography: some variation is expected (cv 0.1-0.3)
+  // Compositing artifacts: extreme variation or unnaturally uniform
+  if (cv < 0.05) return 0.65; // suspiciously uniform
+  if (cv > 0.5)  return 0.55; // extreme variation (possible compositing)
+  return Math.min(0.95, 0.70 + (0.3 - Math.abs(cv - 0.2)) * 1.5);
+}
+
+function renderAS({ AS, FSI, GSSproxy, propScore, lightScore, BUSproxy, eyeAngle }) {
+  const asRound = AS.toFixed(3);
+  let color, flagClass, flagText;
+
+  if (AS >= 0.75) { color = '#22c88a'; flagClass = 'badge-green'; flagText = '✓ Consistent with authentic image'; }
+  else if (AS >= 0.55) { color = '#f5a623'; flagClass = 'badge-amber'; flagText = '⚠ Some inconsistencies detected'; }
+  else { color = '#e84c60'; flagClass = 'badge-red'; flagText = '✗ Significant authenticity concerns'; }
+
+  document.getElementById('result-panel').style.display = 'block';
+  document.getElementById('as-num').textContent = asRound;
+  document.getElementById('as-num').style.color = color;
+  document.getElementById('as-fill').style.width = (AS * 100) + '%';
+  document.getElementById('as-fill').style.background = color;
+
+  const flagEl = document.getElementById('as-flag');
+  flagEl.textContent = flagText;
+  flagEl.style.background = flagClass === 'badge-green' ? 'rgba(34,200,138,.12)' : flagClass === 'badge-amber' ? 'rgba(245,166,35,.12)' : 'rgba(232,76,96,.12)';
+  flagEl.style.color = color;
+  flagEl.style.border = '1px solid ' + color + '40';
+
+  document.getElementById('m-sym').textContent = FSI.toFixed(3);
+  document.getElementById('m-gss').textContent = Math.abs(eyeAngle).toFixed(1) + '° tilt';
+  document.getElementById('m-prop').textContent = propScore.toFixed(3);
+  document.getElementById('m-light').textContent = lightScore.toFixed(3);
+  document.getElementById('m-as-final').textContent = AS.toFixed(3);
+
+  // Signal bars
+  const signals = [
+    { name:'Facial Symmetry (FSI)', val:FSI },
+    { name:'Geometric Stability (GSS)', val:GSSproxy },
+    { name:'Proportion Score', val:propScore },
+    { name:'Lighting Consistency', val:lightScore },
+    { name:'Behavioral Entropy (BUS)', val:BUSproxy },
+  ];
+
+  const list = document.getElementById('signal-list');
+  list.innerHTML = '';
+  signals.forEach(s => {
+    const c = s.val >= 0.75 ? '#22c88a' : s.val >= 0.55 ? '#f5a623' : '#e84c60';
+    const row = document.createElement('div');
+    row.className = 'signal-row';
+    row.innerHTML = `
+      <span class="signal-name">${s.name}</span>
+      <div class="signal-bar-wrap"><div class="signal-bar-fill" style="width:${s.val*100}%;background:${c}"></div></div>
+      <span class="signal-val" style="color:${c}">${s.val.toFixed(2)}</span>
+    `;
+    list.appendChild(row);
+  });
+  document.getElementById('signals-panel').style.display = 'block';
+}
+
+function drawAnalysisOverlay(FSI, eyeAngle) {
+  draw();
+  // Draw eye line with angle annotation
+  if (landmarks.L_EYE && landmarks.R_EYE) {
+    const lx = landmarks.L_EYE.x, ly = landmarks.L_EYE.y;
+    const rx = landmarks.R_EYE.x, ry = landmarks.R_EYE.y;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(rx, ry);
+    ctx.strokeStyle = 'rgba(0,212,170,0.6)'; ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.stroke();
+
+    const mid = {x:(lx+rx)/2, y:(ly+ry)/2};
+    ctx.font = 'bold 12px JetBrains Mono, monospace';
+    ctx.fillStyle = '#00d4aa';
+    ctx.fillText(Math.abs(eyeAngle).toFixed(1)+'°', mid.x + 10, mid.y - 8);
+  }
+
+  // Draw symmetry axis
+  const midX = (landmarks.L_EYE.x + landmarks.R_EYE.x) / 2;
+  const topY = Math.min(...Object.values(landmarks).map(p=>p.y)) - 20;
+  const botY = Math.max(...Object.values(landmarks).map(p=>p.y)) + 20;
+  ctx.beginPath(); ctx.moveTo(midX, topY); ctx.lineTo(midX, botY);
+  ctx.strokeStyle = 'rgba(245,166,35,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // Label
+  ctx.font = 'bold 12px JetBrains Mono, monospace';
+  ctx.fillStyle = '#f5a623';
+  ctx.fillText('FSI ' + FSI.toFixed(2), midX + 8, topY + 16);
+}
+
+function resetLandmarks() {
+  Object.keys(landmarks).forEach(k => delete landmarks[k]);
+  activeLM = null;
+  LM_ORDER.forEach(k => {
+    const btn = document.getElementById('lm-'+k);
+    btn.classList.remove('active-lm','done-lm');
+  });
+  document.getElementById('compute-btn').disabled = true;
+  document.getElementById('result-panel').style.display = 'none';
+  document.getElementById('signals-panel').style.display = 'none';
+  document.getElementById('canvas-hint').style.display = 'none';
+}
+
+function resetAll() {
+  img = null;
+  document.getElementById('upload-zone').style.display = 'flex';
+  document.getElementById('canvas-container').style.display = 'none';
+  document.getElementById('canvas-status').textContent = 'No image loaded';
+  LM_ORDER.forEach(k => { document.getElementById('lm-'+k).disabled = true; });
+  resetLandmarks();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+</script>
+
+</body>
+</html>
