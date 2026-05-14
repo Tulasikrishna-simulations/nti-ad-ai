@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Geometry Detector — NTI-AD AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#050a10;--bg2:#09111a;--bg3:#0d1822;
+      --text:#b8ccd8;--bright:#e4f0f8;--muted:#566878;
+      --teal:#00d4aa;--teal-lo:rgba(0,212,170,.1);--teal-md:rgba(0,212,170,.2);
+      --amber:#f5a623;--amber-lo:rgba(245,166,35,.1);
+      --red:#e84c60;--red-lo:rgba(232,76,96,.1);
+      --green:#22c88a;--green-lo:rgba(34,200,138,.1);
+      --border:rgba(255,255,255,.05);--border2:rgba(255,255,255,.1);--r:10px;
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+    h1,h2,h3{font-family:'Syne',sans-serif;color:var(--bright);line-height:1.2}
+    p{color:var(--muted)} a{color:var(--teal);text-decoration:none} a:hover{text-decoration:underline}
+
+    nav{position:sticky;top:0;z-index:100;height:56px;background:rgba(5,10,16,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center}
+    .nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;width:100%;display:flex;align-items:center;justify-content:space-between}
+    .nav-back{font-size:13px;color:var(--muted);transition:color .15s}
+    .nav-back:hover{color:var(--teal);text-decoration:none}
+    .nav-logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--teal)}
+    .nav-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;background:var(--teal-lo);border:1px solid var(--teal-md);color:var(--teal);border-radius:4px}
+
+    .hero{padding:56px 0 40px;border-bottom:1px solid var(--border)}
+    .container{max-width:1200px;margin:0 auto;padding:0 24px}
+    .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+    .hero h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;margin-bottom:12px}
+    .hero p{font-size:1rem;max-width:600px;line-height:1.7}
+
+    .main-wrap{display:grid;grid-template-columns:1fr 360px;gap:20px;padding:28px 0;align-items:start}
+
+    .canvas-outer{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;min-height:480px;display:flex;align-items:center;justify-content:center;position:relative}
+    .upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:48px 24px;text-align:center;cursor:pointer;width:100%;min-height:480px;border:2px dashed var(--border2);border-radius:var(--r);transition:border-color .2s,background .2s}
+    .upload-zone:hover{border-color:var(--teal);background:var(--teal-lo)}
+    .upload-icon{font-size:48px;opacity:.4}
+    .upload-zone h3{font-size:16px;color:var(--bright)}
+    #canvas-wrap{display:none;position:relative;width:100%}
+    #main-canvas{display:block;width:100%;height:auto;cursor:crosshair}
+    .hint-bar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(5,10,16,.88);border:1px solid var(--border2);border-radius:6px;padding:7px 16px;font-size:12px;color:var(--bright);white-space:nowrap;font-family:'JetBrains Mono',monospace;pointer-events:none;display:none}
+
+    .controls{display:flex;flex-direction:column;gap:14px}
+    .panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+    .ph{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .pt{font-size:13px;font-weight:600;color:var(--bright);font-family:'Syne',sans-serif}
+    .pb{padding:14px 16px}
+    .step-num{width:22px;height:22px;border-radius:50%;flex-shrink:0;background:var(--teal-lo);border:1px solid var(--teal-md);color:var(--teal);font-family:'JetBrains Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center}
+    .step-num.done{background:var(--green-lo);border-color:rgba(34,200,138,.3);color:var(--green)}
+    .step-num.active{background:var(--teal);color:#050a10;border-color:var(--teal)}
+
+    .presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+    .preset{font-size:11px;padding:4px 10px;border:1px solid var(--border2);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+    .preset:hover,.preset.on{border-color:var(--teal);color:var(--teal);background:var(--teal-lo)}
+
+    .input-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .input-row label{font-size:12px;color:var(--muted);white-space:nowrap}
+    .num-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--bright);font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .15s}
+    .num-input:focus{border-color:var(--teal)}
+    .unit{font-size:12px;color:var(--muted)}
+
+    .action-btn{width:100%;padding:10px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;border:1px solid var(--border2);background:transparent;color:var(--text)}
+    .action-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-lo)}
+    .action-btn.active-state{background:var(--teal-lo);border-color:var(--teal);color:var(--teal)}
+    .action-btn:disabled{opacity:.35;cursor:not-allowed}
+    .reset-btn{background:none;border:1px solid var(--border2);color:var(--muted);font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;width:100%;margin-top:8px}
+    .reset-btn:hover{border-color:var(--red);color:var(--red)}
+    .hint-text{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5}
+    .hint-text.active{color:var(--teal)}
+
+    /* Object search */
+    .search-wrap{position:relative;margin-bottom:10px}
+    .search-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:9px 12px;color:var(--bright);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+    .search-input:focus{border-color:var(--teal)}
+    .search-input::placeholder{color:var(--muted)}
+    .search-dd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;max-height:220px;overflow-y:auto;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    .search-dd.show{display:block}
+    .si{padding:9px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
+    .si:last-child{border-bottom:none}
+    .si:hover{background:var(--teal-lo)}
+    .si-name{font-size:13px;color:var(--bright)}
+    .si-cat{font-size:10px;padding:1px 6px;border-radius:3px;background:var(--teal-lo);color:var(--teal);border:1px solid var(--teal-md);margin-left:6px;vertical-align:middle}
+    .si-meta{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
+
+    /* Results */
+    .r-hero{padding:20px 16px;border-bottom:1px solid var(--border);text-align:center}
+    .r-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .r-val{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;line-height:1;transition:color .3s}
+    .r-unit{font-size:13px;color:var(--muted);margin-bottom:14px}
+    .r-track{height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin-bottom:12px;overflow:hidden}
+    .r-fill{height:100%;border-radius:2px;transition:width .5s,background .5s}
+    .r-flag{display:inline-block;font-size:11px;padding:4px 12px;border-radius:20px}
+
+    /* Inconsistency */
+    .ib{padding:14px 16px;border-bottom:1px solid var(--border)}
+    .ib-title{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;font-family:'JetBrains Mono',monospace}
+    .ib-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:10px}
+    .ib-box{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px;text-align:center}
+    .ib-box-lbl{font-size:10px;color:var(--muted);margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+    .ib-box-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--bright)}
+    .ib-box-sub{font-size:10px;color:var(--muted);margin-top:2px}
+    .ib-vs{font-size:14px;color:var(--muted);text-align:center}
+    .ib-ratio{text-align:center;padding:10px;border-radius:7px;border:1px solid}
+    .ib-ratio-num{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1}
+    .ib-ratio-lbl{font-size:11px;margin-top:4px}
+
+    .mrows{padding:2px 0}
+    .mrow{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;border-bottom:1px solid var(--border);font-size:12px}
+    .mrow:last-child{border-bottom:none}
+    .mk{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px}
+    .mv{color:var(--bright);font-weight:500;font-family:'JetBrains Mono',monospace}
+
+    .subj-log{padding:8px 14px;display:flex;flex-direction:column;gap:5px}
+    .subj-item{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);font-size:11px}
+    .subj-name{color:var(--bright);font-family:'JetBrains Mono',monospace}
+    .subj-val{font-family:'JetBrains Mono',monospace;font-weight:500}
+
+    /* Formula */
+    .formula-section{padding:48px 0;border-top:1px solid var(--border)}
+    .fbox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px 26px;max-width:720px}
+    .fbox h3{font-size:15px;color:var(--bright);margin-bottom:10px}
+    .fml{display:block;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--amber);background:rgba(0,0,0,.3);padding:9px 14px;border-radius:6px;margin:10px 0}
+    .fvars{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin-top:12px}
+    .fk{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber)}
+    .fv{font-size:12px;color:var(--muted)}
+
+    footer{border-top:1px solid var(--border);padding:28px 0;margin-top:24px}
+    .foot-inner{display:flex;align-items:center;justify-content:space-between}
+    .foot-logo{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--teal)}
+    .foot-copy{font-size:11px;color:var(--muted)}
+
+    @media(max-width:800px){.main-wrap{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-back">← NTI-AD AI</a>
+    <span class="nav-logo">Visual Geometry Detector</span>
+    <span class="nav-badge">DEMO</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">Visual Geometry Layer · AS Sub-module</div>
+    <h1>Does this product look the right size?</h1>
+    <p>Upload any ad. Mark a reference. Mark the subject. Search what it actually is — the system looks up its real documented dimensions and flags how far the geometry deviates from reality.</p>
+  </div>
+</section>
+
+<div class="container">
+  <div class="main-wrap">
+
+    <div class="canvas-outer">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('fi').click()" ondragover="event.preventDefault()" ondrop="event.preventDefault();loadFile(event.dataTransfer.files[0])">
+        <div class="upload-icon">📸</div>
+        <h3>Drop an ad image here</h3>
+        <p>Product ad, influencer photo, brand campaign</p>
+        <input type="file" id="fi" accept="image/*" style="display:none" onchange="loadFile(this.files[0])">
+      </div>
+      <div id="canvas-wrap">
+        <canvas id="main-canvas"></canvas>
+        <div class="hint-bar" id="hint-bar"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+
+      <div class="panel">
+        <div class="ph"><div class="step-num" id="s1n">1</div><span class="pt">Set reference object</span></div>
+        <div class="pb">
+          <p style="font-size:12px;margin-bottom:10px">Pick a reference with a known real-world size. Click its top and bottom in the image.</p>
+          <div class="presets">
+            <button class="preset on" onclick="setRef(2.032,'Door',this)">Door (2.03m)</button>
+            <button class="preset" onclick="setRef(1.467,'Car',this)">Car (1.47m)</button>
+            <button class="preset" onclick="setRef(0.74,'Table',this)">Table (0.74m)</button>
+            <button class="preset" onclick="setRef(0,'Custom',this)">Custom</button>
+          </div>
+          <div class="input-row"><label>Ref height</label><input class="num-input" id="ref-h" type="number" value="2.032" step="0.001" min="0.001"><span class="unit">m</span></div>
+          <button class="action-btn" id="btn-ref" onclick="startRef()" disabled>Click 2 points on reference →</button>
+          <div class="hint-text" id="hint-ref">Upload an image first.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><div class="step-num" id="s2n">2</div><span class="pt">Mark subject to measure</span></div>
+        <div class="pb">
+          <p style="font-size:12px;margin-bottom:10px">Click the top and bottom of the product, person, or object you want to measure.</p>
+          <button class="action-btn" id="btn-sub" onclick="startSub()" disabled>Click 2 points on subject →</button>
+          <div class="hint-text" id="hint-sub">Set reference first.</div>
+          <div class="subj-log" id="subj-log"></div>
+          <button class="reset-btn" onclick="resetAll()">Reset all</button>
+        </div>
+      </div>
+
+      <div class="panel" id="step3" style="display:none">
+        <div class="ph"><div class="step-num active" id="s3n">3</div><span class="pt">What is the subject?</span></div>
+        <div class="pb">
+          <p style="font-size:12px;margin-bottom:10px">Search for the actual product or object. The system looks up its real documented dimensions and checks if the geometry matches.</p>
+          <div class="search-wrap">
+            <input class="search-input" id="obj-search" type="text" placeholder="iPhone 15 Pro, Nike Air Force, Coke can, adult male..." oninput="doSearch(this.value)" onblur="setTimeout(closeDD,200)">
+            <div class="search-dd" id="search-dd"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Or enter expected height manually:</div>
+          <div class="input-row"><label>Expected</label><input class="num-input" id="exp-h" type="number" step="0.001" min="0.001" placeholder="e.g. 0.147"><span class="unit">m</span></div>
+          <button class="action-btn" onclick="computeRatio()">Compare &amp; Flag →</button>
+        </div>
+      </div>
+
+      <div class="panel" id="result-panel" style="display:none">
+        <div class="ph"><span class="pt">Geometric Analysis</span></div>
+        <div class="r-hero">
+          <div class="r-lbl">Estimated Height (H_est)</div>
+          <div class="r-val" id="r-hest">—</div>
+          <div class="r-unit">metres</div>
+          <div class="r-track"><div class="r-fill" id="r-fill" style="width:50%"></div></div>
+          <div class="r-flag" id="r-flag">—</div>
+        </div>
+        <div class="ib" id="ib" style="display:none">
+          <div class="ib-title">Inconsistency Analysis</div>
+          <div class="ib-compare">
+            <div class="ib-box"><div class="ib-box-lbl">H_est (measured)</div><div class="ib-box-val" id="ib-det">—</div><div class="ib-box-sub">from image geometry</div></div>
+            <div class="ib-vs">vs</div>
+            <div class="ib-box"><div class="ib-box-lbl">H_expected (real)</div><div class="ib-box-val" id="ib-exp">—</div><div class="ib-box-sub" id="ib-name">documented size</div></div>
+          </div>
+          <div class="ib-ratio" id="ib-ratio"><div class="ib-ratio-num" id="ib-rnum">—</div><div class="ib-ratio-lbl" id="ib-rlbl">—</div></div>
+        </div>
+        <div class="mrows">
+          <div class="mrow"><span class="mk">P_obj (pixels)</span><span class="mv" id="m-pobj">—</span></div>
+          <div class="mrow"><span class="mk">P_ref (pixels)</span><span class="mv" id="m-pref">—</span></div>
+          <div class="mrow"><span class="mk">H_ref</span><span class="mv" id="m-href">—</span></div>
+          <div class="mrow"><span class="mk">H_est = (P_obj/P_ref)×H_ref</span><span class="mv" id="m-hest2">—</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="formula-section">
+    <div class="eyebrow">How it works</div>
+    <h2 style="font-size:1.6rem;margin-bottom:8px">Geometry + product knowledge = inconsistency detection</h2>
+    <p style="max-width:600px;margin-bottom:24px">The system doesn't just measure — it compares the measured geometry against the actual documented dimensions of the specific object in the frame.</p>
+    <div class="fbox">
+      <h3>Two-stage verification</h3>
+      <code class="fml">H_est = (P_obj / P_ref) × H_ref</code>
+      <code class="fml">Inconsistency Ratio = H_est / H_expected</code>
+      <div class="fvars">
+        <span class="fk">H_expected</span><span class="fv">Actual documented real-world size of the identified product (from database of 60+ objects)</span>
+        <span class="fk">Ratio ≈ 1.0</span><span class="fv">Geometry is consistent with real product dimensions</span>
+        <span class="fk">Ratio &gt; 1.5</span><span class="fv">Product appears significantly larger than its actual size</span>
+        <span class="fk">Ratio &gt; 2.5</span><span class="fv">Strong visual manipulation — product is being shown at false scale</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-logo">NTI-AD AI</span>
+      <span class="foot-copy">Visual Geometry Layer · PAVE-C · S R Tulasi Krishna</span>
+      <a href="index.html" style="font-size:12px;color:var(--muted)">← Back</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const DB=[
+  {n:'iPhone 15 Pro',h:0.1467,cat:'phone',note:'146.7 mm'},
+  {n:'iPhone 15 Pro Max',h:0.1599,cat:'phone',note:'159.9 mm'},
+  {n:'iPhone 15',h:0.1477,cat:'phone',note:'147.7 mm'},
+  {n:'iPhone 14 Pro',h:0.1477,cat:'phone',note:'147.7 mm'},
+  {n:'iPhone 14 Pro Max',h:0.1609,cat:'phone',note:'160.9 mm'},
+  {n:'iPhone SE 3rd gen',h:0.1384,cat:'phone',note:'138.4 mm'},
+  {n:'Samsung Galaxy S24 Ultra',h:0.1628,cat:'phone',note:'162.8 mm'},
+  {n:'Samsung Galaxy S24',h:0.1476,cat:'phone',note:'147.6 mm'},
+  {n:'OnePlus 12',h:0.1640,cat:'phone',note:'164.0 mm'},
+  {n:'Redmi Note 13 Pro',h:0.1619,cat:'phone',note:'161.9 mm'},
+  {n:'MacBook Pro 14"',h:0.3121,cat:'laptop',note:'312.1 mm wide'},
+  {n:'MacBook Air 13"',h:0.2955,cat:'laptop',note:'295.5 mm wide'},
+  {n:'MacBook Air 15"',h:0.3404,cat:'laptop',note:'340.4 mm wide'},
+  {n:'iPad Pro 12.9"',h:0.2805,cat:'tablet',note:'280.5 mm'},
+  {n:'iPad Pro 11"',h:0.2479,cat:'tablet',note:'247.9 mm'},
+  {n:'iPad mini 6th gen',h:0.1953,cat:'tablet',note:'195.3 mm'},
+  {n:'iPad Air 5th gen',h:0.2474,cat:'tablet',note:'247.4 mm'},
+  {n:'Apple Watch 45mm',h:0.045,cat:'watch',note:'45 mm case'},
+  {n:'Apple Watch 41mm',h:0.041,cat:'watch',note:'41 mm case'},
+  {n:'Rolex Submariner',h:0.040,cat:'watch',note:'40 mm case'},
+  {n:'Casio G-Shock GA-2100',h:0.0465,cat:'watch',note:'46.5 mm'},
+  {n:'AirPods Pro 2 case',h:0.0453,cat:'audio',note:'45.3 mm'},
+  {n:'Sony WH-1000XM5',h:0.254,cat:'audio',note:'254 mm tall'},
+  {n:'JBL Charge 5',h:0.218,cat:'audio',note:'218 mm'},
+  {n:'Coca-Cola can 330ml',h:0.115,cat:'beverage',note:'115 mm'},
+  {n:'Red Bull can 250ml',h:0.135,cat:'beverage',note:'135 mm'},
+  {n:'Beer bottle 650ml',h:0.295,cat:'beverage',note:'295 mm'},
+  {n:'Water bottle 500ml',h:0.205,cat:'beverage',note:'205 mm'},
+  {n:'Starbucks Venti cup',h:0.172,cat:'beverage',note:'172 mm'},
+  {n:'Nike Air Force 1',h:0.112,cat:'footwear',note:'112 mm heel height'},
+  {n:'Nike Air Jordan 1',h:0.115,cat:'footwear',note:'115 mm'},
+  {n:'Adidas Samba',h:0.108,cat:'footwear',note:'108 mm'},
+  {n:'Nike Dunk Low',h:0.108,cat:'footwear',note:'108 mm'},
+  {n:'Chanel No.5 100ml',h:0.115,cat:'cosmetic',note:'115 mm'},
+  {n:'Dior Sauvage 100ml',h:0.120,cat:'cosmetic',note:'120 mm'},
+  {n:'Maybelline mascara',h:0.120,cat:'cosmetic',note:'120 mm'},
+  {n:'Big Mac burger',h:0.075,cat:'food',note:'75 mm tall'},
+  {n:'Dominos Large Pizza box 14"',h:0.355,cat:'food',note:'355 mm box'},
+  {n:'Pringles can 200g',h:0.295,cat:'food',note:'295 mm'},
+  {n:'Nutella jar 400g',h:0.120,cat:'food',note:'120 mm'},
+  {n:'Football soccer ball',h:0.220,cat:'sport',note:'22 cm diameter'},
+  {n:'Basketball size 7',h:0.241,cat:'sport',note:'24.1 cm diameter'},
+  {n:'Cricket bat full size',h:0.965,cat:'sport',note:'96.5 cm'},
+  {n:'Standard exterior door',h:2.032,cat:'arch',note:'2032 mm'},
+  {n:'Standard interior door',h:1.981,cat:'arch',note:'1981 mm'},
+  {n:'Office desk height',h:0.740,cat:'arch',note:'740 mm'},
+  {n:'Honda City height',h:1.467,cat:'vehicle',note:'1467 mm'},
+  {n:'Toyota Fortuner height',h:1.835,cat:'vehicle',note:'1835 mm'},
+  {n:'Maruti Swift height',h:1.530,cat:'vehicle',note:'1530 mm'},
+  {n:'Royal Enfield Classic 350',h:1.090,cat:'vehicle',note:'~1090 mm'},
+  {n:'Average adult male India',h:1.665,cat:'person',note:'avg 166.5 cm'},
+  {n:'Average adult female India',h:1.527,cat:'person',note:'avg 152.7 cm'},
+  {n:'Average adult male global',h:1.710,cat:'person',note:'avg 171 cm'},
+  {n:'Average adult female global',h:1.600,cat:'person',note:'avg 160 cm'},
+  {n:'Credit card',h:0.054,cat:'finance',note:'54 mm × 86 mm'},
+  {n:'A4 paper sheet',h:0.297,cat:'misc',note:'297 mm'},
+  {n:'Standard brick',h:0.065,cat:'misc',note:'65 mm height'},
+];
+
+const canvas=document.getElementById('main-canvas');
+const ctx=canvas.getContext('2d');
+let img=null,state='idle',refP1=null,refP2=null,subP1=null;
+let refH=2.032,lastHest=null,lastPobj=null,lastPref=null;
+let subjects=[],subjectCount=0;
+
+function loadFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  const r=new FileReader();
+  r.onload=e=>{img=new Image();img.onload=()=>{
+    canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+    document.getElementById('upload-zone').style.display='none';
+    document.getElementById('canvas-wrap').style.display='block';
+    resetAll();draw();
+    document.getElementById('btn-ref').disabled=false;
+    document.getElementById('hint-ref').textContent='Select a reference preset, then click the button.';
+  };img.src=e.target.result;};r.readAsDataURL(file);
+}
+
+function setRef(h,name,btn){
+  refH=h;document.getElementById('ref-h').value=h;
+  document.querySelectorAll('.preset').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(h===0)document.getElementById('ref-h').focus();
+}
+document.getElementById('ref-h').addEventListener('input',e=>refH=parseFloat(e.target.value)||2.032);
+
+function startRef(){
+  if(!img)return;
+  refH=parseFloat(document.getElementById('ref-h').value)||2.032;
+  refP1=null;refP2=null;state='ref1';
+  hint('Click TOP of reference object');
+  document.getElementById('btn-ref').classList.add('active-state');
+  document.getElementById('s1n').classList.add('active');
+  document.getElementById('hint-ref').textContent='▶ Click TOP of reference.';
+  document.getElementById('hint-ref').classList.add('active');
+  draw();
+}
+
+function startSub(){
+  if(!refP1||!refP2)return;
+  subP1=null;state='sub1';
+  hint('Click TOP of subject');
+  document.getElementById('btn-sub').classList.add('active-state');
+  document.getElementById('s2n').classList.add('active');
+  document.getElementById('hint-sub').textContent='▶ Click TOP of subject.';
+  document.getElementById('hint-sub').classList.add('active');
+  draw();
+}
+
+canvas.addEventListener('click',e=>{
+  if(!img||state==='idle')return;
+  const rect=canvas.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*(canvas.width/rect.width);
+  const y=(e.clientY-rect.top)*(canvas.height/rect.height);
+
+  if(state==='ref1'){refP1={x,y};state='ref2';hint('Click BOTTOM of reference');document.getElementById('hint-ref').textContent='▶ Click BOTTOM of reference.';draw();}
+  else if(state==='ref2'){refP2={x,y};state='idle';
+    document.getElementById('btn-ref').classList.remove('active-state');
+    document.getElementById('s1n').classList.remove('active');document.getElementById('s1n').classList.add('done');document.getElementById('s1n').textContent='✓';
+    document.getElementById('hint-ref').textContent='Reference set. P_ref='+Math.round(dist(refP1,refP2))+'px = '+refH+'m';
+    document.getElementById('hint-ref').classList.remove('active');
+    document.getElementById('btn-sub').disabled=false;
+    document.getElementById('hint-sub').textContent='Click the button above to measure a subject.';
+    closeHint();draw();
+  }
+  else if(state==='sub1'){subP1={x,y};state='sub2';hint('Click BOTTOM of subject');document.getElementById('hint-sub').textContent='▶ Click BOTTOM.';draw();}
+  else if(state==='sub2'){
+    const subP2={x,y};state='idle';
+    document.getElementById('btn-sub').classList.remove('active-state');
+    closeHint();measure(subP1,subP2);subP1=null;draw();
+  }
+});
+
+function measure(p1,p2){
+  subjectCount++;
+  const pObj=dist(p1,p2),pRef=dist(refP1,refP2);
+  const Hest=(pObj/pRef)*refH;
+  lastHest=Hest;lastPobj=pObj;lastPref=pRef;
+  subjects.push({id:subjectCount,p1,p2,Hest});
+
+  const log=document.getElementById('subj-log');
+  const item=document.createElement('div');
+  item.className='subj-item';
+  item.innerHTML=`<span class="subj-name">Subject ${subjectCount}</span><span class="subj-val" style="color:var(--amber)">${Hest.toFixed(3)}m</span>`;
+  log.appendChild(item);
+
+  document.getElementById('result-panel').style.display='block';
+  document.getElementById('r-hest').textContent=Hest.toFixed(3);
+  document.getElementById('r-hest').style.color='var(--amber)';
+  document.getElementById('r-fill').style.width=Math.min(100,Hest*25)+'%';
+  document.getElementById('r-fill').style.background='var(--amber)';
+  document.getElementById('r-flag').textContent='Measured — search for what this is to check inconsistency';
+  document.getElementById('r-flag').style.cssText='background:var(--amber-lo);color:var(--amber);border:1px solid rgba(245,166,35,.3)';
+  document.getElementById('m-pobj').textContent=Math.round(pObj)+'px';
+  document.getElementById('m-pref').textContent=Math.round(pRef)+'px';
+  document.getElementById('m-href').textContent=refH+'m';
+  document.getElementById('m-hest2').textContent=Hest.toFixed(3)+'m';
+
+  document.getElementById('step3').style.display='block';
+  document.getElementById('s2n').classList.remove('active');document.getElementById('s2n').classList.add('done');document.getElementById('s2n').textContent='✓';
+  document.getElementById('hint-sub').textContent='Measured. Identify the subject in Step 3.';
+  document.getElementById('hint-sub').classList.remove('active');
+  draw();
+}
+
+function doSearch(q){
+  const dd=document.getElementById('search-dd');
+  if(!q.trim()){dd.classList.remove('show');return;}
+  const ql=q.toLowerCase();
+  const res=DB.filter(o=>o.n.toLowerCase().includes(ql)||o.cat.toLowerCase().includes(ql)).slice(0,8);
+  if(!res.length){dd.classList.remove('show');return;}
+  dd.innerHTML='';
+  res.forEach(o=>{
+    const d=document.createElement('div');d.className='si';
+    d.innerHTML=`<div class="si-name">${o.n}<span class="si-cat">${o.cat}</span></div><div class="si-meta">${o.note} · ${(o.h*100).toFixed(1)}cm</div>`;
+    d.addEventListener('click',()=>{
+      document.getElementById('obj-search').value=o.n;
+      document.getElementById('exp-h').value=o.h;
+      closeDD();
+    });
+    dd.appendChild(d);
+  });
+  dd.classList.add('show');
+}
+function closeDD(){document.getElementById('search-dd').classList.remove('show');}
+
+function computeRatio(){
+  const Hest=lastHest;if(!Hest)return;
+  const expH=parseFloat(document.getElementById('exp-h').value);if(!expH||isNaN(expH))return;
+  const objName=document.getElementById('obj-search').value||'Subject';
+  const ratio=Hest/expH;
+  const dev=((ratio-1)*100);
+
+  let col,flagText,flagStyle;
+  if(ratio>=0.82&&ratio<=1.22){col='var(--green)';flagText='✓ Geometry consistent with real dimensions';flagStyle='background:var(--green-lo);color:var(--green);border:1px solid rgba(34,200,138,.3)';}
+  else if(ratio<0.82){col='var(--amber)';flagText='⚠ Appears '+Math.abs(dev).toFixed(0)+'% smaller than documented size';flagStyle='background:var(--amber-lo);color:var(--amber);border:1px solid rgba(245,166,35,.3)';}
+  else if(ratio<=1.6){col='var(--amber)';flagText='⚠ Appears '+dev.toFixed(0)+'% larger — verify context';flagStyle='background:var(--amber-lo);color:var(--amber);border:1px solid rgba(245,166,35,.3)';}
+  else{col='var(--red)';flagText='✗ Appears '+ratio.toFixed(1)+'× larger than real — geometric manipulation likely';flagStyle='background:var(--red-lo);color:var(--red);border:1px solid rgba(232,76,96,.3)';}
+
+  document.getElementById('r-hest').style.color=col;
+  document.getElementById('r-fill').style.background=col;
+  document.getElementById('r-flag').textContent=flagText;
+  document.getElementById('r-flag').style.cssText=flagStyle;
+
+  const ib=document.getElementById('ib');ib.style.display='block';
+  document.getElementById('ib-det').textContent=Hest.toFixed(3)+'m';document.getElementById('ib-det').style.color=col;
+  document.getElementById('ib-exp').textContent=expH.toFixed(3)+'m';
+  document.getElementById('ib-name').textContent=objName;
+
+  const rbox=document.getElementById('ib-ratio');
+  const rnum=document.getElementById('ib-rnum');const rlbl=document.getElementById('ib-rlbl');
+  rnum.textContent=ratio.toFixed(2)+'×';rnum.style.color=col;
+  rlbl.textContent=(ratio>=0.82&&ratio<=1.22?'Consistent — no geometric flag':(ratio>1?dev.toFixed(0)+'% larger than real object':Math.abs(dev).toFixed(0)+'% smaller than real object'));
+  rlbl.style.color=col;
+  rbox.style.background=ratio>=0.82&&ratio<=1.22?'var(--green-lo)':ratio<=1.6?'var(--amber-lo)':'var(--red-lo)';
+  rbox.style.borderColor=col+'50';
+
+  document.getElementById('s3n').classList.remove('active');document.getElementById('s3n').classList.add('done');document.getElementById('s3n').textContent='✓';
+}
+
+function dist(a,b){return Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2);}
+function mid(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2};}
+function hint(msg){const h=document.getElementById('hint-bar');h.textContent=msg;h.style.display='block';}
+function closeHint(){document.getElementById('hint-bar').style.display='none';}
+
+function draw(){
+  if(!img)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);
+  if(refP1)dot(refP1,'#00d4aa',6);
+  if(refP1&&refP2){dot(refP2,'#00d4aa',6);line(refP1,refP2,'#00d4aa',2.5);lbl(mid(refP1,refP2),refH+'m ref','#00d4aa',-70);}
+  subjects.forEach((s,i)=>{const c=i===subjects.length-1?'#f5a623':'rgba(245,166,35,0.5)';dot(s.p1,c,5);dot(s.p2,c,5);line(s.p1,s.p2,c,2);lbl(mid(s.p1,s.p2),s.Hest.toFixed(2)+'m',c,52);});
+  if(subP1&&state==='sub2')dot(subP1,'#f5a623',5);
+}
+function dot(p,col,r){ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.5;ctx.stroke();}
+function line(a,b,col,w){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);}
+function lbl(p,txt,col,ox){ox=ox||0;ctx.font='bold 13px JetBrains Mono,monospace';const tw=ctx.measureText(txt).width;ctx.fillStyle='rgba(5,10,16,.82)';ctx.beginPath();ctx.roundRect(p.x+ox-6,p.y-11,tw+14,22,4);ctx.fill();ctx.fillStyle=col;ctx.fillText(txt,p.x+ox,p.y+4);}
+
+function resetAll(){
+  refP1=null;refP2=null;subP1=null;subjects=[];subjectCount=0;lastHest=null;state='idle';
+  document.getElementById('subj-log').innerHTML='';
+  document.getElementById('result-panel').style.display='none';
+  document.getElementById('step3').style.display='none';
+  document.getElementById('ib').style.display='none';
+  document.getElementById('btn-ref').disabled=!img;document.getElementById('btn-sub').disabled=true;
+  document.getElementById('btn-ref').classList.remove('active-state');document.getElementById('btn-sub').classList.remove('active-state');
+  ['s1n','s2n'].forEach(id=>{const el=document.getElementById(id);el.className='step-num';el.textContent=id==='s1n'?'1':'2';});
+  document.getElementById('s3n').className='step-num active';document.getElementById('s3n').textContent='3';
+  document.getElementById('hint-ref').textContent=img?'Select a reference preset, then click the button.':'Upload an image first.';
+  document.getElementById('hint-ref').classList.remove('active');
+  document.getElementById('hint-sub').textContent='Set reference first.';document.getElementById('hint-sub').classList.remove('active');
+  document.getElementById('obj-search').value='';document.getElementById('exp-h').value='';
+  closeHint();if(img)draw();
+}
+</script>
+</body>
+</html>
