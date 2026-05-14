@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Geometry Detector — NTI-AD AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:     #050a10;
+      --bg2:    #09111a;
+      --bg3:    #0d1822;
+      --bg4:    #111f2e;
+      --text:   #b8ccd8;
+      --bright: #e4f0f8;
+      --muted:  #566878;
+      --dim:    #2a3a48;
+      --teal:   #00d4aa;
+      --teal-lo:rgba(0,212,170,.1);
+      --teal-md:rgba(0,212,170,.2);
+      --amber:  #f5a623;
+      --red:    #e84c60;
+      --green:  #22c88a;
+      --border: rgba(255,255,255,.05);
+      --border2:rgba(255,255,255,.1);
+      --r: 10px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    h1,h2,h3 { font-family: 'Syne', sans-serif; color: var(--bright); line-height: 1.2; }
+    p { color: var(--muted); }
+    a { color: var(--teal); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Nav */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: 56px; background: rgba(5,10,16,.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+    }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; display: flex; align-items: center; justify-content: space-between; }
+    .nav-back { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; transition: color .15s; }
+    .nav-back:hover { color: var(--teal); text-decoration: none; }
+    .nav-logo { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; color: var(--teal); }
+    .nav-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 3px 8px; background: var(--teal-lo); border: 1px solid var(--teal-md); color: var(--teal); border-radius: 4px; }
+
+    /* Hero */
+    .hero { padding: 64px 0 48px; border-bottom: 1px solid var(--border); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-bottom: 10px; }
+    .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; margin-bottom: 12px; }
+    .hero p { font-size: 1rem; max-width: 560px; line-height: 1.7; }
+
+    /* Main layout */
+    .demo-wrap { display: grid; grid-template-columns: 1fr 340px; gap: 20px; padding: 28px 0; align-items: start; }
+
+    /* Canvas area */
+    .canvas-area {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden; min-height: 480px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .upload-zone {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 14px; padding: 48px 24px; text-align: center;
+      cursor: pointer; width: 100%; height: 100%; min-height: 480px;
+      border: 2px dashed var(--border2); border-radius: var(--r);
+      transition: border-color .2s, background .2s;
+    }
+    .upload-zone:hover { border-color: var(--teal); background: var(--teal-lo); }
+    .upload-icon { font-size: 48px; opacity: .4; }
+    .upload-zone h3 { font-size: 16px; color: var(--bright); }
+    .upload-zone p { font-size: 13px; }
+    .upload-zone input { display: none; }
+    #canvas-wrap { position: relative; width: 100%; display: none; }
+    #main-canvas { display: block; width: 100%; height: auto; cursor: crosshair; border-radius: var(--r); }
+    .canvas-overlay-msg {
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(5,10,16,.85); border: 1px solid var(--border2);
+      border-radius: 6px; padding: 7px 16px;
+      font-size: 12px; color: var(--bright); white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+      pointer-events: none;
+    }
+
+    /* Controls panel */
+    .controls { display: flex; flex-direction: column; gap: 14px; }
+
+    .panel {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden;
+    }
+    .panel-head {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .step-num {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      background: var(--teal-lo); border: 1px solid var(--teal-md);
+      color: var(--teal); font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-num.done { background: rgba(34,200,138,.15); border-color: rgba(34,200,138,.3); color: var(--green); }
+    .step-num.active { background: var(--teal); color: #050a10; border-color: var(--teal); }
+    .panel-title { font-size: 13px; font-weight: 500; color: var(--bright); }
+    .panel-body { padding: 14px 16px; }
+
+    /* Preset buttons */
+    .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .preset-btn {
+      font-size: 11px; padding: 4px 10px;
+      border: 1px solid var(--border2); border-radius: 20px;
+      background: transparent; color: var(--muted);
+      cursor: pointer; transition: all .15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .preset-btn:hover, .preset-btn.on { border-color: var(--teal); color: var(--teal); background: var(--teal-lo); }
+
+    .input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .input-row label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .input-row input[type=number] {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 6px; padding: 6px 10px;
+      color: var(--bright); font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .input-row input[type=number]:focus { border-color: var(--teal); }
+    .input-row span { font-size: 12px; color: var(--muted); }
+
+    .action-btn {
+      width: 100%; padding: 10px;
+      border-radius: 7px; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all .15s;
+      font-family: 'DM Sans', sans-serif;
+      border: 1px solid var(--border2); background: transparent;
+      color: var(--text);
+    }
+    .action-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-lo); }
+    .action-btn.primary { background: var(--teal); color: #050a10; border-color: var(--teal); font-weight: 600; }
+    .action-btn.primary:hover { opacity: .88; }
+    .action-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .action-btn.active-state { background: var(--teal-lo); border-color: var(--teal); color: var(--teal); }
+
+    /* Results */
+    .result-panel { display: none; }
+    .result-panel.show { display: block; }
+
+    .result-score {
+      text-align: center; padding: 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-score .label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .result-score .value { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; line-height: 1; }
+    .result-score .unit { font-size: 14px; color: var(--muted); margin-top: 2px; }
+    .result-score .flag { font-size: 12px; margin-top: 10px; padding: 5px 12px; border-radius: 20px; display: inline-block; }
+    .flag-green { background: rgba(34,200,138,.12); color: var(--green); border: 1px solid rgba(34,200,138,.25); }
+    .flag-amber { background: rgba(245,166,35,.12); color: var(--amber); border: 1px solid rgba(245,166,35,.25); }
+    .flag-red   { background: rgba(232,76,96,.12);  color: var(--red);   border: 1px solid rgba(232,76,96,.25); }
+
+    .metrics { padding: 12px 16px; }
+    .metric-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-k { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .metric-v { color: var(--bright); font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+
+    /* Formula section */
+    .formula-section { padding: 48px 0; border-top: 1px solid var(--border); }
+    .formula-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 24px 28px; max-width: 700px;
+    }
+    .formula-box h3 { font-size: 15px; color: var(--bright); margin-bottom: 12px; }
+    .fml {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; color: var(--amber);
+      background: rgba(0,0,0,.3);
+      padding: 10px 16px; border-radius: 6px;
+      margin: 10px 0; display: block;
+    }
+    .formula-box p { font-size: 13px; line-height: 1.7; }
+    .formula-vars { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin-top: 12px; }
+    .var-k { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--amber); }
+    .var-v { font-size: 12px; color: var(--muted); }
+
+    /* Reset btn */
+    .reset-btn {
+      background: none; border: 1px solid var(--border2);
+      color: var(--muted); font-size: 12px; padding: 5px 12px;
+      border-radius: 6px; cursor: pointer; margin-top: 8px;
+      font-family: 'DM Sans', sans-serif; transition: all .15s;
+    }
+    .reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+    .hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+    .hint.active { color: var(--teal); }
+
+    /* Subjects list */
+    .subjects-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .subject-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 10px; background: var(--bg3);
+      border-radius: 6px; font-size: 12px;
+      border: 1px solid var(--border);
+    }
+    .subject-item .s-name { color: var(--bright); font-family: 'JetBrains Mono', monospace; }
+    .subject-item .s-val { font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+
+    footer { border-top: 1px solid var(--border); padding: 28px 0; }
+    .foot-inner { display: flex; align-items: center; justify-content: space-between; }
+    .foot-logo { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; color: var(--teal); }
+    .foot-copy { font-size: 11px; color: var(--muted); }
+
+    @media (max-width: 800px) {
+      .demo-wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-back">← NTI-AD AI</a>
+    <span class="nav-logo">Visual Geometry Detector</span>
+    <span class="nav-badge">DEMO</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">Visual Geometry Layer · AS Sub-module</div>
+    <h1>Height & Proportion Estimator</h1>
+    <p>Upload any advertisement image. Mark a reference object with a known real-world size, then mark any subject. The system computes H_est using the PAVE-C visual geometry formula and flags geometric inconsistencies.</p>
+  </div>
+</section>
+
+<div class="container">
+  <div class="demo-wrap">
+
+    <!-- Canvas -->
+    <div class="canvas-area" id="canvas-area">
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">📸</div>
+        <h3>Drop an image here</h3>
+        <p>or click to upload · JPG, PNG, WebP</p>
+        <input type="file" id="file-input" accept="image/*">
+      </div>
+      <div id="canvas-wrap">
+        <canvas id="main-canvas"></canvas>
+        <div class="canvas-overlay-msg" id="overlay-msg" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+
+      <!-- Step 1: Reference -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="step-num" id="s1-num">1</div>
+          <span class="panel-title">Set reference object</span>
+        </div>
+        <div class="panel-body">
+          <p style="font-size:12px;margin-bottom:10px">Select a preset or enter a custom height, then click two points on the reference object in the image.</p>
+          <div class="presets" id="presets">
+            <button class="preset-btn on" onclick="setPreset(2.1,'Standard door',this)">Door (2.1m)</button>
+            <button class="preset-btn" onclick="setPreset(1.5,'Car roof',this)">Car (1.5m)</button>
+            <button class="preset-btn" onclick="setPreset(1.0,'Counter',this)">Counter (1.0m)</button>
+            <button class="preset-btn" onclick="setPreset(0.0,'Custom',this)">Custom</button>
+          </div>
+          <div class="input-row">
+            <label>Reference height</label>
+            <input type="number" id="ref-height" value="2.1" step="0.01" min="0.01" max="100">
+            <span>metres</span>
+          </div>
+          <button class="action-btn" id="btn-ref" onclick="startRef()" disabled>Click 2 points on reference →</button>
+          <div class="hint" id="hint-ref">Upload an image first.</div>
+        </div>
+      </div>
+
+      <!-- Step 2: Measure subject -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="step-num" id="s2-num">2</div>
+          <span class="panel-title">Measure subject</span>
+        </div>
+        <div class="panel-body">
+          <p style="font-size:12px;margin-bottom:10px">Click the top of the subject's head, then the bottom of their feet (or any two points you want to measure).</p>
+          <button class="action-btn" id="btn-sub" onclick="startSub()" disabled>Click 2 points on subject →</button>
+          <div class="hint" id="hint-sub">Set reference first.</div>
+          <div class="subjects-list" id="subjects-list"></div>
+          <button class="reset-btn" onclick="resetAll()" style="margin-top:10px">Reset all</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="panel result-panel" id="result-panel">
+        <div class="panel-head">
+          <div class="step-num done">✓</div>
+          <span class="panel-title">Analysis result</span>
+        </div>
+        <div class="result-score">
+          <div class="label">Estimated height</div>
+          <div class="value" id="res-value">—</div>
+          <div class="unit">metres</div>
+          <div class="flag" id="res-flag">—</div>
+        </div>
+        <div class="metrics">
+          <div class="metric-row">
+            <span class="metric-k">P_obj (pixels)</span>
+            <span class="metric-v" id="m-pobj">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-k">P_ref (pixels)</span>
+            <span class="metric-v" id="m-pref">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-k">H_ref (metres)</span>
+            <span class="metric-v" id="m-href">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-k">H_est (metres)</span>
+            <span class="metric-v" id="m-hest">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-k">Deviation from avg</span>
+            <span class="metric-v" id="m-dev">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Formula section -->
+  <div class="formula-section">
+    <div class="eyebrow">How it works</div>
+    <h2 style="margin-bottom:20px;font-size:1.6rem">The visual geometry formula</h2>
+    <div class="formula-box">
+      <h3>H_est — Estimated Object Height</h3>
+      <code class="fml">H_est = (P_obj / P_ref) × H_ref</code>
+      <div class="formula-vars">
+        <span class="var-k">P_obj</span><span class="var-v">Pixel length of the subject being measured</span>
+        <span class="var-k">P_ref</span><span class="var-v">Pixel length of the known reference object</span>
+        <span class="var-k">H_ref</span><span class="var-v">Real-world height of the reference object (metres)</span>
+        <span class="var-k">H_est</span><span class="var-v">Estimated real-world height of the subject</span>
+      </div>
+      <p style="margin-top:14px">The system then compares H_est against expected real-world ranges. For adult humans, normal height is 1.5–2.0m. Significant deviation — an influencer appearing to be 2.4m against a standard door, or a product appearing much larger than its real dimensions — flags a potential geometric inconsistency in the advertisement.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-logo">NTI-AD AI</span>
+      <span class="foot-copy">Visual Geometry Layer · PAVE-C Framework · S R Tulasi Krishna</span>
+      <a href="index.html" style="font-size:12px;color:var(--muted)">← Back to main site</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const canvas = document.getElementById('main-canvas');
+  const ctx = canvas.getContext('2d');
+  const uploadZone = document.getElementById('upload-zone');
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const fileInput = document.getElementById('file-input');
+
+  let img = null;
+  let refHeight = 2.1;
+  let state = 'idle'; // idle | ref1 | ref2 | sub1 | sub2
+  let refP1 = null, refP2 = null;
+  let subP1 = null;
+  let subjects = [];
+  let subjectCount = 0;
+
+  // Colors
+  const C_REF  = '#00d4aa';
+  const C_SUB  = '#f5a623';
+  const C_LINE = 'rgba(255,255,255,0.15)';
+
+  // Upload
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = 'var(--teal)'; });
+  uploadZone.addEventListener('dragleave', () => uploadZone.style.borderColor = '');
+  uploadZone.addEventListener('drop', e => { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      img = new Image();
+      img.onload = () => {
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        uploadZone.style.display = 'none';
+        canvasWrap.style.display = 'block';
+        resetAll();
+        draw();
+        document.getElementById('btn-ref').disabled = false;
+        document.getElementById('hint-ref').textContent = 'Select a reference preset above, then click the button.';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function setPreset(h, name, btn) {
+    refHeight = h;
+    document.getElementById('ref-height').value = h;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    if (h === 0) document.getElementById('ref-height').focus();
+  }
+
+  document.getElementById('ref-height').addEventListener('input', e => {
+    refHeight = parseFloat(e.target.value) || 2.1;
+  });
+
+  function startRef() {
+    if (!img) return;
+    refHeight = parseFloat(document.getElementById('ref-height').value) || 2.1;
+    refP1 = null; refP2 = null;
+    state = 'ref1';
+    setOverlay('Click point 1 of your reference object (top)');
+    document.getElementById('btn-ref').classList.add('active-state');
+    document.getElementById('hint-ref').textContent = '▶ Click the TOP of your reference object.';
+    document.getElementById('hint-ref').classList.add('active');
+    document.getElementById('s1-num').classList.add('active');
+    draw();
+  }
+
+  function startSub() {
+    if (!refP1 || !refP2) return;
+    subP1 = null;
+    state = 'sub1';
+    setOverlay('Click TOP of subject (e.g. head)');
+    document.getElementById('btn-sub').classList.add('active-state');
+    document.getElementById('hint-sub').textContent = '▶ Click the TOP of the subject (head).';
+    document.getElementById('hint-sub').classList.add('active');
+    document.getElementById('s2-num').classList.add('active');
+    draw();
+  }
+
+  function setOverlay(msg) {
+    const el = document.getElementById('overlay-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  canvas.addEventListener('click', e => {
+    if (!img) return;
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas.width  / rect.width;
+    const sy = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * sx;
+    const y = (e.clientY - rect.top)  * sy;
+
+    if (state === 'ref1') {
+      refP1 = {x, y};
+      state = 'ref2';
+      setOverlay('Click point 2 of reference (bottom)');
+      document.getElementById('hint-ref').textContent = '▶ Now click the BOTTOM of your reference object.';
+      draw();
+    } else if (state === 'ref2') {
+      refP2 = {x, y};
+      state = 'idle';
+      document.getElementById('btn-ref').classList.remove('active-state');
+      document.getElementById('s1-num').classList.remove('active');
+      document.getElementById('s1-num').classList.add('done');
+      document.getElementById('s1-num').textContent = '✓';
+      document.getElementById('hint-ref').textContent = 'Reference set. P_ref = ' + Math.round(dist(refP1, refP2)) + 'px at ' + refHeight + 'm.';
+      document.getElementById('hint-ref').classList.remove('active');
+      document.getElementById('btn-sub').disabled = false;
+      document.getElementById('hint-sub').textContent = 'Click the button above, then mark a subject.';
+      document.getElementById('overlay-msg').style.display = 'none';
+      draw();
+    } else if (state === 'sub1') {
+      subP1 = {x, y};
+      state = 'sub2';
+      setOverlay('Click BOTTOM of subject (feet / base)');
+      document.getElementById('hint-sub').textContent = '▶ Now click the BOTTOM (feet or base).';
+      draw();
+    } else if (state === 'sub2') {
+      const subP2 = {x, y};
+      state = 'idle';
+      document.getElementById('btn-sub').classList.remove('active-state');
+      document.getElementById('s2-num').classList.remove('active');
+      document.getElementById('overlay-msg').style.display = 'none';
+      calculate(subP1, subP2);
+      subP1 = null;
+      draw();
+    }
+  });
+
+  function calculate(p1, p2) {
+    subjectCount++;
+    const pObj = dist(p1, p2);
+    const pRef = dist(refP1, refP2);
+    const hEst = (pObj / pRef) * refHeight;
+
+    subjects.push({ id: subjectCount, p1, p2, hEst, pObj, pRef });
+
+    // Determine flag
+    let flagClass, flagText;
+    if      (hEst >= 1.5 && hEst <= 2.05) { flagClass = 'flag-green'; flagText = '✓ Normal adult range'; }
+    else if (hEst >= 1.3 && hEst <  1.5)  { flagClass = 'flag-amber'; flagText = '⚠ Below average adult'; }
+    else if (hEst >  2.05 && hEst <= 2.3) { flagClass = 'flag-amber'; flagText = '⚠ Above average — verify'; }
+    else if (hEst >  2.3)                 { flagClass = 'flag-red';   flagText = '✗ Geometrically inconsistent'; }
+    else                                   { flagClass = 'flag-amber'; flagText = '⚠ Unusual — verify context'; }
+
+    const dev = (((hEst - 1.72) / 1.72) * 100).toFixed(1);
+
+    // Show result panel
+    const panel = document.getElementById('result-panel');
+    panel.classList.add('show');
+
+    document.getElementById('res-value').textContent = hEst.toFixed(2);
+    document.getElementById('res-value').style.color = flagClass === 'flag-green' ? 'var(--green)' : flagClass === 'flag-amber' ? 'var(--amber)' : 'var(--red)';
+    document.getElementById('res-flag').className = 'flag ' + flagClass;
+    document.getElementById('res-flag').textContent = flagText;
+
+    document.getElementById('m-pobj').textContent = Math.round(pObj) + 'px';
+    document.getElementById('m-pref').textContent = Math.round(pRef) + 'px';
+    document.getElementById('m-href').textContent = refHeight + 'm';
+    document.getElementById('m-hest').textContent = hEst.toFixed(3) + 'm';
+    document.getElementById('m-dev').textContent = (dev > 0 ? '+' : '') + dev + '% from avg (1.72m)';
+
+    // Add to list
+    const list = document.getElementById('subjects-list');
+    const item = document.createElement('div');
+    item.className = 'subject-item';
+    const valColor = flagClass === 'flag-green' ? 'var(--green)' : flagClass === 'flag-amber' ? 'var(--amber)' : 'var(--red)';
+    item.innerHTML = `<span class="s-name">Subject ${subjectCount}</span><span class="s-val" style="color:${valColor}">${hEst.toFixed(2)}m</span>`;
+    list.appendChild(item);
+
+    document.getElementById('s2-num').classList.add('done');
+    document.getElementById('s2-num').textContent = '✓';
+    document.getElementById('hint-sub').textContent = 'Measured. Add another subject or reset.';
+    document.getElementById('hint-sub').classList.remove('active');
+
+    draw();
+  }
+
+  function dist(a, b) {
+    return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
+  }
+
+  function draw() {
+    if (!img) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+
+    // Draw reference
+    if (refP1) drawPoint(refP1, C_REF, 6);
+    if (refP1 && refP2) {
+      drawPoint(refP2, C_REF, 6);
+      drawLine(refP1, refP2, C_REF, 2.5);
+      drawLabel(midpoint(refP1, refP2), refHeight + 'm (ref)', C_REF, -60);
+    } else if (refP1 && state === 'ref2') {
+      drawPoint(refP1, C_REF, 6);
+    }
+
+    // Draw subjects
+    subjects.forEach((s, i) => {
+      const col = s.hEst > 2.3 ? 'var(--red)' : s.hEst >= 1.5 ? C_SUB : '#f0a030';
+      drawPoint(s.p1, col, 5);
+      drawPoint(s.p2, col, 5);
+      drawLine(s.p1, s.p2, col, 2);
+      drawLabel(midpoint(s.p1, s.p2), s.hEst.toFixed(2) + 'm', col, 50);
+    });
+
+    // Active points
+    if (subP1 && state === 'sub2') drawPoint(subP1, C_SUB, 5);
+  }
+
+  function drawPoint(p, color, r) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  function drawLine(p1, p2, color, w) {
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = w;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawLabel(p, text, color, offsetX) {
+    const ox = offsetX || 0;
+    const pad = 6;
+    ctx.font = 'bold 13px JetBrains Mono, monospace';
+    const tw = ctx.measureText(text).width;
+    const bx = p.x + ox - pad;
+    const by = p.y - 11;
+    const bw = tw + pad * 2;
+    const bh = 22;
+    ctx.fillStyle = 'rgba(5,10,16,0.8)';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 4);
+    ctx.fill();
+    ctx.fillStyle = color;
+    ctx.fillText(text, p.x + ox, p.y + 4);
+  }
+
+  function midpoint(a, b) {
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+
+  function resetAll() {
+    refP1 = null; refP2 = null; subP1 = null;
+    subjects = []; subjectCount = 0;
+    state = 'idle';
+    document.getElementById('subjects-list').innerHTML = '';
+    document.getElementById('result-panel').classList.remove('show');
+    document.getElementById('btn-ref').disabled = !img;
+    document.getElementById('btn-sub').disabled = true;
+    document.getElementById('btn-ref').classList.remove('active-state');
+    document.getElementById('btn-sub').classList.remove('active-state');
+    document.getElementById('s1-num').className = 'step-num';
+    document.getElementById('s1-num').textContent = '1';
+    document.getElementById('s2-num').className = 'step-num';
+    document.getElementById('s2-num').textContent = '2';
+    document.getElementById('hint-ref').textContent = img ? 'Select a reference preset above, then click the button.' : 'Upload an image first.';
+    document.getElementById('hint-ref').classList.remove('active');
+    document.getElementById('hint-sub').textContent = 'Set reference first.';
+    document.getElementById('hint-sub').classList.remove('active');
+    document.getElementById('overlay-msg').style.display = 'none';
+    if (img) draw();
+  }
+</script>
+
+</body>
+</html>
