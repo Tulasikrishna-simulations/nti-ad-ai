@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NTI-AD AI India — Advertising Transparency Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0008;color:#f3e8ff;font-family:'DM Sans',sans-serif;min-height:100vh;font-size:14px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#120010}::-webkit-scrollbar-thumb{background:#4a0048;border-radius:3px}
+textarea,input,button{font-family:'DM Sans',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+.syne{font-family:'Syne',sans-serif}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeUp .3s ease}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Header */
+.header{background:#120010;border-bottom:1px solid #2a0028;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#f3e8ff;letter-spacing:.04em}
+.header-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:#4a2860;letter-spacing:.25em;margin-bottom:3px}
+.header-note{font-family:'JetBrains Mono',monospace;font-size:10px;color:#9e7ab5;margin-top:3px}
+.header-count{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;color:#ff2d78;line-height:1;text-align:right}
+.header-count-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:#4a2860;letter-spacing:.2em;margin-bottom:3px;text-align:right}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid #2a0028;overflow-x:auto;background:#0a0008}
+.tab-btn{flex:1;min-width:80px;padding:11px 8px;background:transparent;border:none;border-bottom:2px solid transparent;color:#9e7ab5;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;white-space:nowrap;transition:all .2s}
+.tab-btn.active{background:#120010;border-bottom-color:#ff2d78;color:#ff2d78}
+.tab-btn:hover:not(.active){color:#f3e8ff}
+
+/* Content */
+.content{padding:16px;max-width:1100px;margin:0 auto}
+
+/* Panels */
+.panel{background:#120010;border:1px solid #2a0028;border-radius:12px;padding:16px}
+.panel-glow-red{box-shadow:0 0 30px rgba(255,23,68,.06)}
+.panel-glow-orange{box-shadow:0 0 30px rgba(255,109,0,.06)}
+.panel-glow-pink{box-shadow:0 0 30px rgba(255,45,120,.06)}
+.panel-glow-yellow{box-shadow:0 0 30px rgba(255,215,64,.06)}
+.panel-glow-green{box-shadow:0 0 30px rgba(0,230,118,.08)}
+.panel-glow-purple{box-shadow:0 0 30px rgba(224,64,251,.06)}
+
+/* Section label */
+.sec-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:#4a2860;letter-spacing:.25em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #2a0028}
+
+/* Badge */
+.badge{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 8px;border-radius:20px;display:inline-block;margin:2px 3px 2px 0;letter-spacing:.05em}
+
+/* Grid helpers */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.flex-col{display:flex;flex-direction:column;gap:12px}
+
+/* Buttons */
+.btn-sample{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 9px;background:#0a0008;border:1px solid #2a0028;color:#9e7ab5;border-radius:20px;cursor:pointer;transition:all .2s}
+.btn-sample:hover{border-color:#00e5ff;color:#00e5ff}
+.btn-analyze{width:100%;padding:13px;background:linear-gradient(135deg,#ff2d78,#e040fb);border:none;border-radius:8px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.1em;transition:opacity .2s;margin-top:12px}
+.btn-analyze:hover{opacity:.88}
+.btn-analyze:disabled{background:#1a001a;color:#4a2860;cursor:not-allowed}
+.btn-toggle{padding:5px 12px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:all .2s;border:1px solid #2a0028;background:#0a0008;color:#9e7ab5}
+
+/* Score display */
+.score-big{font-family:'Syne',sans-serif;font-size:72px;font-weight:800;line-height:1;text-align:center}
+.score-track{height:5px;background:#2a0028;border-radius:3px;overflow:hidden;margin:10px 0}
+.score-fill{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* Bar */
+.bar-wrap{margin-bottom:10px}
+.bar-labels{display:flex;justify-content:space-between;margin-bottom:3px}
+.bar-track{height:4px;background:#2a0028;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* Info box */
+.info-box{padding:11px 13px;background:#0a0008;border-radius:7px;margin-bottom:8px}
+
+/* Case sidebar */
+.cases-layout{display:grid;grid-template-columns:190px 1fr;gap:14px}
+.case-sidebar{display:flex;flex-direction:column;gap:7px}
+.case-btn{background:#120010;border:1px solid #2a0028;border-radius:9px;padding:10px 12px;text-align:left;cursor:pointer;transition:all .2s;width:100%}
+.case-btn.active{border-color:rgba(255,45,120,.4)}
+
+/* Quiz */
+.quiz-q{padding:14px;background:#0a0008;border-radius:9px;margin-bottom:12px;border:1px solid #2a0028}
+.quiz-q.correct{border-color:rgba(0,230,118,.4)}
+.quiz-q.wrong{border-color:rgba(255,23,68,.4)}
+.quiz-opt{display:block;width:100%;padding:9px 14px;background:#120010;border:1px solid #2a0028;border-radius:7px;color:#9e7ab5;font-family:'JetBrains Mono',monospace;font-size:11px;text-align:left;cursor:pointer;margin-top:6px;transition:all .2s;line-height:1.5}
+.quiz-opt:hover:not(:disabled){border-color:#00e5ff;color:#00e5ff}
+.quiz-opt.correct-opt{background:rgba(0,230,118,.12);border-color:rgba(0,230,118,.5);color:#00e676}
+.quiz-opt.wrong-opt{background:rgba(255,23,68,.1);border-color:rgba(255,23,68,.4);color:#ff1744}
+.quiz-explain{margin-top:10px;padding:10px;background:rgba(0,230,118,.08);border-radius:7px;border:1px solid rgba(0,230,118,.2);font-size:11px;color:#f3e8ff;line-height:1.65;font-family:'JetBrains Mono',monospace}
+
+textarea{width:100%;min-height:130px;background:#0a0008;border:1px solid #2a0028;border-radius:8px;color:#f3e8ff;font-size:12px;padding:12px;resize:vertical;outline:none;line-height:1.7;transition:border-color .2s;font-family:'JetBrains Mono',monospace}
+textarea:focus{border-color:#ff2d78}
+textarea::placeholder{color:#4a2860}
+input[type=password]{width:100%;background:#0a0008;border:1px solid #2a0028;border-radius:6px;padding:7px 10px;color:#f3e8ff;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;margin-top:6px}
+input[type=password]:focus{border-color:#e040fb}
+
+@media(max-width:768px){.grid2,.cases-layout,.grid3{grid-template-columns:1fr}.case-sidebar{flex-direction:row;overflow-x:auto}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-sub">NTI-AD AI · INDIA EDITION · ASCI / FSSAI / NCPCR / COURTS</div>
+    <div class="header-title">Advertising Transparency Platform</div>
+    <div class="header-note">Real regulatory data. No opinions. Just what the records show.</div>
+  </div>
+  <div>
+    <div class="header-count-label">DOCUMENTED CASES</div>
+    <div class="header-count">6</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab(0)">🔍 Check an Ad</button>
+  <button class="tab-btn" onclick="switchTab(1)">🇮🇳 Real Indian Cases</button>
+  <button class="tab-btn" onclick="switchTab(2)">📊 Data Sources</button>
+  <button class="tab-btn" onclick="switchTab(3)">👶 For Kids</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content" id="content"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const CASES = [
+  {id:"vimal",emoji:"🚫",color:"#ff1744",brand:"Vimal Pan Masala / Elaichi",actor:"Shah Rukh Khan · Ajay Devgn · Akshay Kumar",category:"gutka",quad:"IV",asci:true,score:{ate:5,nti:3,uti:0.15,aid:4.85},
+   claim:"Three of India's highest-paid actors appear looking glamorous and successful. The implication — that pan masala is a lifestyle choice of winners — is the advertisement's primary commercial communication.",
+   reality:"None of the three actors consume pan masala. All three subsequently issued clarifications — through their publicists — that they were specifically promoting the cardamom (elaichi) variant, not the tobacco product. The Vimal brand produces both. The brand name is identical across both product lines. India records 1.3 lakh oral cancer cases per year, the highest figure globally. These facts are presented in the order in which we received them.",
+   source:"ASCI complaint 2022 · Actor self-admissions · ICMR oral cancer data",
+   harmful:"Oral cancer, gum disease, nicotine addiction. The 'elaichi' branding creates regulatory cover while maintaining brand recognition built on a tobacco product.",
+   kidImpact:"When a child's favourite actor is shown holding a product and looking successful, the product becomes aspirational. The distinction between cardamom and tobacco is not the first thing a ten-year-old processes.",
+   moral:"Your favourite actor is doing a job in that advertisement. The job pays very well. The job does not require them to use the product."},
+  {id:"bournvita",emoji:"🏆",color:"#ff6d00",brand:"Cadbury Bournvita",actor:"Child athlete models",category:"health",quad:"IV",asci:true,score:{ate:30,nti:8,uti:2.4,aid:27.6},
+   claim:"'Tayyari Jeet Ki' — preparation for victory. The product is positioned as the nutritional foundation of young champions. Children are shown winning sports events after consuming it.",
+   reality:"Per 100g of Bournvita: 50.3g of sugar. Per 100ml of Coca-Cola: approximately 10.6g of sugar. We acknowledge these are different units of measurement and present them without further editorial comment. In April 2023, India's National Commission for Protection of Child Rights issued a formal notice to Mondelez India requesting removal of the 'health drink' positioning. Amazon India subsequently moved the product out of the 'health drink' category. Mondelez has not yet released a statement explaining the athletic performance-enhancement properties of 50.3g of sugar per 100g.",
+   source:"NCPCR notice April 2023 · FSSAI high-sugar classification · Amazon India category reclassification",
+   harmful:"Parents administered a high-sugar product daily under the belief it was building immunity and physical capability. Childhood obesity, dental damage, and sugar dependency are the documented downstream effects.",
+   kidImpact:"The word 'champion' on packaging, combined with imagery of athletic success, created an equation: Bournvita = winning. Parents who didn't buy it felt they were denying their child an advantage. This is a specific and well-documented persuasion technique.",
+   moral:"'Champion' is a word on a box. What's also on the box — in much smaller print — is the nutrition table. That one is harder to photograph for advertisements."},
+  {id:"maggi",emoji:"🍜",color:"#ff6d00",brand:"Maggi Noodles",actor:"Amitabh Bachchan · various",category:"food",quad:"IV",asci:true,score:{ate:35,nti:15,uti:5.25,aid:29.75},
+   claim:'"The Great Family Nourisher." The product is shown as a quick, nutritious meal that busy mothers can prepare in two minutes. Iron. Protein. Warmth. Love.',
+   reality:"In June 2015, FSSAI laboratory testing found lead content at 7× the permissible limit. The packaging stated 'No Added MSG.' MSG was present. One serving accounted for 46% of a child's recommended daily sodium intake. The product was banned across India for five months. Nine crore packets were recalled. The 'Mummy bhook lagi' campaign has not been widely deployed since. We note this chronological fact without inferring causation.",
+   source:"FSSAI order June 2015 · Bombay High Court proceedings · Madras High Court · Nestlé India public statements",
+   harmful:"Elevated lead exposure affects cognitive development in children. High sodium intake contributes to hypertension. The 'quick family meal' positioning meant the product was consumed regularly and in volume.",
+   kidImpact:"The campaign created a direct linguistic association: hunger → Maggi. 'Mummy bhook lagi' was effective enough that it remained in cultural memory long after the product returned to shelves under revised testing.",
+   moral:"Something that everyone eats is not the same as something that is good for you. These are two different categories that advertising often presents as one."},
+  {id:"horlicks",emoji:"🥛",color:"#ffd740",brand:"Horlicks (GlaxoSmithKline)",actor:"Child models",category:"health",quad:"IV",asci:true,score:{ate:40,nti:18,uti:7.2,aid:32.8},
+   claim:'"The Great Family Nourisher." Taller. Sharper. Stronger. Advertisements show children growing measurably after consuming Horlicks, with improvements in academic performance and physical development.',
+   reality:"In 2020, the UK's Advertising Standards Authority ruled that Horlicks could not substantiate claims that it made children taller or smarter. GlaxoSmithKline withdrew these claims in the United Kingdom. The same claims continued to run in India for a period following this ruling. The company has not released a statement explaining why the height and intelligence-enhancement properties of the product are subject to geographic variation.",
+   source:"ASA UK ruling 2020 · ASCI India complaints · Comparative regulatory timeline",
+   harmful:"Parents substituted or supplemented genuine nutritional food with a malt drink carrying unsubstantiated medical-grade claims. Per 100g: 75g carbohydrates, significant sugar content.",
+   kidImpact:"Children demanded Horlicks because the advertisements showed it making you demonstrably better — taller, smarter, more academically successful. Parents bought it believing they were providing a developmental advantage. The advantage was not substantiated by the UK regulator.",
+   moral:"If an ad says a drink will make you smarter or taller — that is a medical claim. Medical claims require evidence. Evidence is not the same as an advertisement."},
+  {id:"fairness",emoji:"💔",color:"#ff2d78",brand:"Fair & Lovely / Glow & Lovely (HUL)",actor:"Multiple Bollywood actresses across decades",category:"beauty",quad:"IV",asci:true,score:{ate:20,nti:5,uti:1.0,aid:19.0},
+   claim:"Dark-skinned woman is shown being passed over for jobs, rejected romantically, and excluded socially. She applies the cream. She becomes fairer. She is hired, chosen, successful. The causal chain is the advertisement's central argument.",
+   reality:"Skin-lightening creams cannot permanently alter skin tone. The advertising went beyond product claims to establish a causal relationship between skin colour and life outcomes — across decades and millions of placements. In 2020, following sustained and documented public pressure, Hindustan Unilever renamed the product 'Glow & Lovely.' The formula was not changed. Several analysts observed that the evolution was primarily nominal. These analysts were accurate.",
+   source:"ASCI complaints across 2000s–2020s · HUL name change July 2020 · Campaign groups: Dark is Beautiful, Unfair & Lovely",
+   harmful:"Documented psychological harm: millions of Indian children, disproportionately girls, developed the belief that their natural skin colour was a defect requiring correction. The scale of this harm — across decades of advertising — has not been formally quantified by any party involved in producing the advertisements.",
+   kidImpact:"Before a child can articulate colorism, the advertisement has already delivered its message through a simple narrative: rejection, product, success. The message preceded the vocabulary to question it.",
+   moral:"Your skin colour is not a problem. Any advertisement that proceeds from the assumption that it is — is the thing with the problem."},
+  {id:"kfc",emoji:"🍗",color:"#ffd740",brand:"KFC India",actor:"Brand advertising",category:"food",quad:"II",asci:false,score:{ate:65,nti:14,uti:9.1,aid:55.9},
+   claim:"Large, uniformly golden chicken pieces. Overflowing buckets. 'Finger Lickin' Good.' The advertisements document products that are, in visual terms, remarkable.",
+   reality:"Consumer documentation — Google Maps reviews, food photography comparisons, and food styling industry exposés — consistently shows the served product is approximately 40–60% smaller than the advertised version. The industry term for this practice is 'food styling.' Both the advertisements and the Google Maps reviews are publicly available for independent comparison. We note that KFC's product is genuine chicken, which distinguishes it from some other cases in this collection.",
+   source:"ASCI complaints · Google Maps reviews analysis · Food styling industry documentation",
+   harmful:"Not acutely harmful in the manner of the other cases. The documented effect is the normalisation of a gap between visual representation and physical reality — which, across enough exposures, trains people to accept advertising claims as distinct from product claims.",
+   kidImpact:"A child who sees the KFC advertisement and receives the actual product is receiving their first lesson in how advertising works. Whether that lesson lands correctly depends entirely on whether anyone explains it to them.",
+   moral:"The food in a fast food advertisement has been styled by professionals. The food on your tray has been assembled by a different set of professionals under different conditions. Both groups are doing their jobs."},
+];
+
+const SOURCES = [
+  {icon:"⚖️",name:"ASCI Database",full:"Advertising Standards Council of India",reliability:90,what:"Every ad complaint filed by any Indian citizen. Public record. Upheld complaints confirm the manipulation was real enough for a regulatory body to agree.",use:"If ASCI upheld a complaint against an ad, the NTI-AD score drops automatically. Their public dataset is the backbone of the regulatory layer."},
+  {icon:"🔬",name:"FSSAI Violations",full:"Food Safety and Standards Authority of India",reliability:95,what:"Laboratory test results. If a product claims X nutrition and a government lab finds Y — that gap is not an opinion. It is a measurement. Maggi's lead content. Bournvita's sugar classification.",use:"FSSAI violation = direct ATE score drop. Lab findings carry the highest weight in the product-truth layer."},
+  {icon:"👶",name:"NCPCR Notices",full:"National Commission for Protection of Child Rights",reliability:92,what:"When advertising specifically targets children with harmful or unsubstantiated content, NCPCR issues formal notices. These are public record. Bournvita received one in April 2023.",use:"NCPCR notice = automatic child-safety flag in the For Kids layer. These notices exist because someone decided the harm was specific enough to warrant formal action."},
+  {icon:"🏛",name:"Court Records",full:"High Court and Supreme Court judgments",reliability:98,what:"Courts have the lab data, company admissions, and expert testimony. The Maggi High Court proceedings contain more factual detail about that product than any advertisement ever did.",use:"Court-established facts carry the highest weight in the system. A court finding is not an allegation."},
+  {icon:"📍",name:"Google Maps Reviews",full:"Public consumer feedback at scale",reliability:70,what:"Real people write 'the burger was half the size shown in the ad.' At volume, this becomes a signal. It is unstructured, but patterns emerge.",use:"Review text is analyzed for mismatch language. Volume of 'not what shown' type complaints directly feeds the ATE customer confirmation signal."},
+  {icon:"🙋",name:"You",full:"Real consumer reporting real mismatches",reliability:75,what:"You ate something. Was it what the ad showed? Your yes or no — aggregated with everyone else's — is real-time ground truth that no laboratory can provide.",use:"Your response feeds the r̄_binary term in DRS(t) directly. This is not symbolic participation. This is the data."},
+];
+
+const QUIZ = [
+  {q:"Your favourite cricketer is in a 'health drink' ad. The drink has more sugar than a soft drink. Should you trust the ad?",options:["Yes — cricketers know about health","Check the nutrition label first. The cricketer is doing a job."],correct:1,explain:"Bournvita's 'Tayyari Jeet Ki' used champion imagery while containing 50.3g of sugar per 100g. NCPCR issued a formal notice. The cricketers were not consulted on the sugar content."},
+  {q:"An ad says a cream will make you 'successful and confident' if you use it. What is it actually selling?",options:["A cream that works","The idea that you're currently not good enough"],correct:1,explain:"Fair & Lovely ran this structure for decades — showing rejection, then product, then success. In 2020 it was renamed 'Glow & Lovely'. The formula was unchanged. The implication was unchanged."},
+  {q:"'Only today! Limited offer! Act now!' — what is happening?",options:["This is a genuine emergency","This is a pressure technique to stop you from thinking"],correct:1,explain:"Urgency is a documented persuasion technique. The goal is to make you feel that evaluating the decision carefully will cost you something. Usually it won't."},
+  {q:"A food ad shows a product that looks dramatically better than what you received. Is this normal?",options:["Yes, photography is like that","It's normal, but it means ads and products are different things"],correct:1,explain:"Food styling is standard industry practice. KFC's advertised chicken is 40-60% visually larger than the served product. Both the advertisement and the review photos are available for comparison."},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let state = {
+  tab: 0,
+  selectedCase: 0,
+  adText: '',
+  kidMode: false,
+  apiKey: '',
+  showKey: false,
+  scores: null,
+  aiResult: null,
+  loading: false,
+  error: null,
+  quizAnswers: {},
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function badge(text, color) {
+  return `<span class="badge mono" style="background:${color}20;border:1px solid ${color}50;color:${color}">${text}</span>`;
+}
+function bar(value, color, label, note) {
+  return `<div class="bar-wrap">
+    <div class="bar-labels"><span class="mono" style="font-size:11px;color:#9e7ab5">${label}</span><span class="mono" style="font-size:10px;color:${color};font-weight:700">${note}</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,value)}%;background:${color}"></div></div>
+  </div>`;
+}
+function infoBox(labelColor, labelText, content) {
+  return `<div class="info-box" style="border-left:2px solid ${labelColor}">
+    <div class="mono" style="font-size:9px;color:#9e7ab5;letter-spacing:.15em;margin-bottom:5px">${labelText}</div>
+    <div style="font-size:12px;color:#f3e8ff;line-height:1.7">${content}</div>
+  </div>`;
+}
+function quickScore(text) {
+  const t = text.toLowerCase();
+  const urgency = ["now","hurry","limited","expires","last chance","today only","act now","book now"].filter(w=>t.includes(w)).length;
+  const health = ["healthy","nutritious","immunity","strong","smart","grow taller","protein","vitamin","nourish","champion","boost"].filter(w=>t.includes(w)).length;
+  const hype = ["amazing","incredible","best","revolutionary","proven","guaranteed","world","greatest","life-changing","unlock"].filter(w=>t.includes(w)).length;
+  const specific = (text.match(/\d+\s*(g|mg|%|ml|kcal|cal|kg)/gi)||[]).length;
+  const fairness = ["fair","glow","lighter","brighter skin","whitening","tone","complexion"].filter(w=>t.includes(w)).length;
+  const celeb = ["sachin","dhoni","srk","shah rukh","virat","deepika","priyanka","amitabh","akshay","star","actor","ambassador"].filter(w=>t.includes(w)).length;
+  const fear = ["don't miss","hold you back","left behind","missing out","before it's too late","don't let"].filter(w=>t.includes(w)).length;
+  const manip = Math.min(1, urgency*0.14+hype*0.08+(health>0&&specific===0?0.28:0)+fairness*0.18+fear*0.14);
+  const verif = Math.min(1, specific*0.18+(urgency===0?0.15:0)+(hype===0?0.15:0));
+  const ts = Math.max(5,Math.round((1-manip)*(0.4+verif*0.6)*100));
+  return {ts,manipulation:Math.round(manip*100),verifiability:Math.round(verif*100),urgency,health,hype,specific,fairness,celeb,fear};
+}
+
+async function runAnalysis() {
+  const text = document.getElementById('ad-textarea')?.value || '';
+  if (!text.trim()) return;
+  state.adText = text;
+  state.scores = quickScore(text);
+  state.aiResult = null;
+  state.error = null;
+  state.loading = true;
+  renderTab();
+
+  try {
+    const headers = {"Content-Type":"application/json"};
+    if (state.apiKey) { headers["x-api-key"]=state.apiKey; headers["anthropic-version"]="2023-06-01"; }
+    const kidExtra = state.kidMode ? '\nAlso include "kid_moral": one sentence a 12-year-old Indian child would understand.' : '';
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers,
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:900,
+        messages:[{role:"user",content:`You are an advertising honesty analyst specializing in Indian consumer protection (ASCI, FSSAI, NCPCR).
+
+AD: "${text.substring(0,500)}"
+
+Focus: Indian regulatory context, child targeting, celebrity endorsement reality, health claims without data.${kidExtra}
+
+JSON only:
+{"verdict":"HONEST"|"QUESTIONABLE"|"MISLEADING"|"HARMFUL","summary":"2 sentences on what this ad actually does","main_trick":"biggest manipulation in plain words","what_to_ask":"one question a smart consumer should ask","indian_context":"specific Indian regulatory issue or null","targets_children":true,"celebrity_disclaimer":"what consumers should know or null","kid_moral":"simple moral for a child or null"}`}]})
+    });
+    const data = await res.json();
+    const raw = data.content?.find(b=>b.type==="text")?.text||"{}";
+    state.aiResult = JSON.parse(raw.replace(/```json\n?|```/g,"").trim());
+  } catch(e) {
+    state.error = "AI analysis unavailable — math scores above are still valid. Add an Anthropic API key for AI analysis.";
+  }
+  state.loading = false;
+  renderTab();
+}
+
+// ── TAB RENDERERS ──────────────────────────────────────────────────────────────
+function renderChecker() {
+  const SAMPLES = [
+    {label:"🏆 Bournvita",text:"Bournvita — Tayyari Jeet Ki! Made with vitamins and minerals, helps your child grow stronger and smarter. Champions drink Bournvita every day. Give your child the champion's edge!"},
+    {label:"🚫 Pan Masala",text:"Royal taste, elite lifestyle. Our cardamom blend — chosen by stars, enjoyed by those who know quality. When only the best will do. A statement, not just a product."},
+    {label:"🍜 Maggi",text:"Mummy bhook lagi! Maggi — the great family nourisher. Ready in 2 minutes, packed with the nutrition your family needs. Iron, protein, and love in every bowl."},
+    {label:"💄 Fairness",text:"Unlock your true potential. Lighter, brighter skin in just 4 weeks — proven by dermatologists. Your success story starts with the right glow. Don't let anything hold you back."},
+    {label:"✅ Honest",text:"Our dal makhani uses 150g black dal per serving, slow-cooked 8 hours. Contains 340 kcal, 12g protein. Sourced from Punjab farms. Spice level varies slightly by batch."},
+  ];
+
+  const s = state.scores;
+  const ai = state.aiResult;
+  const tsColor = s ? (s.ts>=65?"#00e676":s.ts>=35?"#ffd740":"#ff1744") : "#4a2860";
+  const vColors = {HONEST:"#00e676",QUESTIONABLE:"#ffd740",MISLEADING:"#ff6d00",HARMFUL:"#ff1744"};
+
+  return `<div class="grid2">
+  <!-- LEFT -->
+  <div class="flex-col">
+    <div class="panel">
+      <div class="sec-label mono">PASTE ANY INDIAN AD TEXT</div>
+      <textarea id="ad-textarea" placeholder="Paste an ad from TV, Instagram, a packet, or a billboard.&#10;&#10;Examples:&#10;• 'Boost is the secret of my energy!'&#10;• Any Bournvita or Horlicks ad&#10;• Any fairness cream ad&#10;• Any fast food promotion">${state.adText}</textarea>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px">
+        ${SAMPLES.map((s,i)=>`<button class="btn-sample" onclick="loadSample(${i})"><span>${s.label}</span></button>`).join('')}
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <button class="btn-toggle" id="kid-toggle" onclick="toggleKid()" style="${state.kidMode?'background:rgba(224,64,251,.2);border-color:#e040fb;color:#e040fb':''}">
+          👶 Kids mode ${state.kidMode?"ON":"OFF"}
+        </button>
+        <button class="btn-toggle" onclick="toggleKey()">🔑 API key ${state.apiKey?"✓ set":"(optional)"}</button>
+      </div>
+      ${state.showKey?`<div>
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." value="${state.apiKey}" oninput="state.apiKey=this.value">
+        <div class="mono" style="font-size:9px;color:#4a2860;margin-top:4px">From console.anthropic.com — used only in this session, never stored</div>
+      </div>`:''}
+      <button class="btn-analyze" onclick="runAnalysis()" ${state.loading?'disabled':''}>
+        ${state.loading?'⏳ ANALYZING...':'→ ANALYZE THIS AD'}
+      </button>
+    </div>
+    <div class="panel mono" style="font-size:12px;color:#9e7ab5;line-height:1.9">
+      <div class="sec-label">INDIA REGULATORY ECOSYSTEM</div>
+      <div>⚖️ <span style="color:#00e5ff">ASCI</span> — Public ad complaint database. Upheld = confirmed.</div>
+      <div>🔬 <span style="color:#00e5ff">FSSAI</span> — Government lab tests food. Maggi lead. Bournvita sugar.</div>
+      <div>👶 <span style="color:#00e5ff">NCPCR</span> — Formal notices when children are targeted. Bournvita 2023.</div>
+      <div>🏛 <span style="color:#00e5ff">Courts</span> — HC/SC judgments carry highest evidential weight.</div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="flex-col">
+    ${!s&&!state.loading?`<div class="panel" style="text-align:center;padding:52px">
+      <div style="font-size:44px;margin-bottom:14px;opacity:.2">🔍</div>
+      <div class="mono" style="font-size:12px;color:#4a2860;line-height:1.7">Results appear here.<br>Rule-based scoring is instant.<br>AI analysis needs an Anthropic API key.</div>
+    </div>`:''}
+
+    ${s?`<div class="panel fade" style="border-color:${tsColor}40;box-shadow:0 0 30px ${tsColor}06">
+      <div class="sec-label mono">PAVE-C TRANSPARENCY SCORE</div>
+      <div class="score-big" style="color:${tsColor}">${s.ts}</div>
+      <div class="mono" style="font-size:11px;color:#9e7ab5;text-align:center;margin-bottom:12px">/ 100 · ${s.ts>=65?"low manipulation":s.ts>=35?"moderate manipulation":"high manipulation"}</div>
+      <div class="score-track"><div class="score-fill" style="width:${s.ts}%;background:${tsColor}"></div></div>
+      ${bar(s.manipulation,"#ff1744","Manipulation pressure",s.manipulation+"%")}
+      ${bar(s.verifiability,"#00e676","Verifiable claims",s.verifiability+"%")}
+      <div style="margin-top:8px">
+        ${s.urgency>0?badge("urgency ×"+s.urgency,"#ff1744"):''}
+        ${s.hype>0?badge("unverified hype ×"+s.hype,"#ff6d00"):''}
+        ${s.health>0&&s.specific===0?badge("health claim — no data","#ffd740"):''}
+        ${s.specific>0?badge(s.specific+" verifiable fact"+(s.specific!==1?"s":""),"#00e676"):''}
+        ${s.fairness>0?badge("colorism / fairness signal","#ff2d78"):''}
+        ${s.celeb>0?badge("celebrity signal","#e040fb"):''}
+        ${s.fear>0?badge("fear / urgency language","#ff1744"):''}
+      </div>
+    </div>`:''}
+
+    ${state.loading?`<div class="panel fade" style="text-align:center;padding:28px">
+      <div class="mono" style="font-size:12px;color:#9e7ab5">⏳ Checking against ASCI, FSSAI, NCPCR records...</div>
+    </div>`:''}
+
+    ${ai?`<div class="panel fade" style="border-color:${(vColors[ai.verdict]||'#9e7ab5')+'40'}">
+      <div style="margin-bottom:12px">
+        ${badge(ai.verdict,vColors[ai.verdict]||'#9e7ab5')}
+        ${ai.targets_children?badge("TARGETS CHILDREN ⚠","#e040fb"):''}
+        ${ai.celebrity_disclaimer?badge("CELEBRITY","#00e5ff"):''}
+      </div>
+      <div style="font-size:13px;color:#f3e8ff;line-height:1.75;margin-bottom:12px">${ai.summary}</div>
+      ${infoBox("#ff6d00","THE MAIN TRICK",ai.main_trick)}
+      ${ai.indian_context?infoBox("#00e5ff","INDIA REGULATORY CONTEXT",ai.indian_context):''}
+      ${ai.celebrity_disclaimer?infoBox("#00e5ff","THE CELEBRITY REALITY",ai.celebrity_disclaimer):''}
+      ${infoBox("#ffd740","SMART QUESTION TO ASK","❓ "+ai.what_to_ask)}
+      ${state.kidMode&&ai.kid_moral?`<div style="padding:12px;background:rgba(224,64,251,.1);border-radius:8px;border:1px solid rgba(224,64,251,.25)">
+        <div class="mono" style="font-size:9px;color:#e040fb;letter-spacing:.15em;margin-bottom:5px">👶 SIMPLE MORAL</div>
+        <div style="font-size:13px;color:#f3e8ff;font-style:italic;line-height:1.65">${ai.kid_moral}</div>
+      </div>`:''}
+    </div>`:''}
+
+    ${state.error?`<div class="panel fade"><div class="mono" style="color:#ff1744;font-size:12px;padding:4px">${state.error}</div></div>`:''}
+  </div>
+</div>`;
+}
+
+function renderRealCases() {
+  const sel = CASES[state.selectedCase];
+  const sidebar = CASES.map((c,i)=>`
+    <button class="case-btn${state.selectedCase===i?' active':''}" onclick="selectCase(${i})" style="${state.selectedCase===i?`background:${c.color}15;border-color:${c.color}50`:''};width:100%">
+      <div style="font-size:20px;margin-bottom:4px">${c.emoji}</div>
+      <div class="mono" style="font-size:10px;color:${state.selectedCase===i?c.color:'#f3e8ff'};font-weight:700;line-height:1.3;margin-bottom:3px">${c.brand}</div>
+      <div class="mono" style="font-size:9px;color:#4a2860">UTI: ${c.score.uti}</div>
+    </button>`).join('');
+
+  return `<div class="cases-layout">
+  <div class="case-sidebar">${sidebar}</div>
+  <div class="flex-col fade">
+    <div class="panel" style="border-color:${sel.color}30;box-shadow:0 0 30px ${sel.color}06">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="font-size:42px">${sel.emoji}</div>
+        <div style="flex:1;min-width:200px">
+          <div class="syne" style="font-size:17px;font-weight:800;color:${sel.color};margin-bottom:3px">${sel.brand}</div>
+          ${sel.actor!=="Brand advertising"?`<div class="mono" style="font-size:10px;color:#9e7ab5;margin-bottom:8px">${sel.actor}</div>`:''}
+          <div>
+            ${sel.asci?badge("ASCI COMPLAINT","#ff1744"):''}
+            ${badge("Quadrant "+sel.quad,sel.quad==="IV"?"#ff1744":"#ffd740")}
+            ${badge(sel.category,"#9e7ab5")}
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;flex-shrink:0">
+          ${[["ATE",sel.score.ate,"#00e5ff"],["NTI",sel.score.nti,sel.color],["UTI",sel.score.uti,sel.color],["AID",sel.score.aid,"#ff6d00"]].map(([l,v,co])=>`
+          <div style="background:#0a0008;border-radius:6px;padding:7px 10px;text-align:center;border:1px solid ${co}30">
+            <div class="mono" style="font-size:9px;color:#9e7ab5;margin-bottom:2px">${l}</div>
+            <div class="syne" style="font-size:16px;font-weight:800;color:${co}">${v}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="grid2" style="margin-bottom:12px">
+        <div style="padding:13px;background:#0a0008;border-radius:8px;border-left:2px solid #00e5ff">
+          <div class="mono" style="font-size:9px;color:#00e5ff;letter-spacing:.12em;margin-bottom:7px">WHAT THE AD COMMUNICATES</div>
+          <div style="font-size:12px;color:#f3e8ff;line-height:1.7">${sel.claim}</div>
+        </div>
+        <div style="padding:13px;background:#0a0008;border-radius:8px;border-left:2px solid ${sel.color}">
+          <div class="mono" style="font-size:9px;color:${sel.color};letter-spacing:.12em;margin-bottom:7px">WHAT THE RECORDS SHOW</div>
+          <div style="font-size:12px;color:#f3e8ff;line-height:1.7">${sel.reality}</div>
+        </div>
+      </div>
+      ${infoBox("#ff1744","DOCUMENTED HARM",sel.harmful)}
+      ${infoBox("#e040fb","IMPACT ON CHILDREN",sel.kidImpact)}
+      <div style="padding:13px;background:${sel.color}10;border-radius:8px;border:1px solid ${sel.color}30;margin-bottom:8px">
+        <div class="mono" style="font-size:9px;color:${sel.color};letter-spacing:.12em;margin-bottom:5px">THE MORAL</div>
+        <div style="font-size:13px;color:#f3e8ff;font-style:italic;line-height:1.65">${sel.moral}</div>
+      </div>
+      <div class="mono" style="font-size:9px;color:#4a2860;margin-top:4px">Source: ${sel.source}</div>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderDataSources() {
+  return `<div>
+    <div class="mono" style="font-size:11px;color:#9e7ab5;margin-bottom:18px;line-height:1.9;max-width:700px">
+      Every score this system produces comes from documented public records — regulatory rulings, laboratory findings, court judgments, and consumer reports. The system does not express opinions. It aggregates existing verdicts.
+    </div>
+    <div class="grid3">
+      ${SOURCES.map(s=>`
+      <div class="panel">
+        <div style="font-size:28px;margin-bottom:10px">${s.icon}</div>
+        <div class="syne" style="font-size:13px;font-weight:700;color:#f3e8ff;margin-bottom:2px">${s.name}</div>
+        <div class="mono" style="font-size:9px;color:#9e7ab5;margin-bottom:12px">${s.full}</div>
+        ${bar(s.reliability,s.reliability>=90?"#00e676":s.reliability>=70?"#ffd740":"#ff6d00","Reliability",s.reliability+"%")}
+        <div style="font-size:12px;color:#9e7ab5;line-height:1.65;margin-bottom:10px">${s.what}</div>
+        <div style="padding:9px;background:#0a0008;border-radius:6px;border-left:2px solid #00e5ff">
+          <div class="mono" style="font-size:9px;color:#00e5ff;margin-bottom:3px;letter-spacing:.1em">HOW WE USE IT</div>
+          <div style="font-size:11px;color:#f3e8ff;line-height:1.55">${s.use}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderForKids() {
+  const qhtml = QUIZ.map((q,i)=>{
+    const ans = state.quizAnswers[i];
+    const isAnswered = ans !== undefined;
+    return `<div class="quiz-q${isAnswered?(ans===q.correct?" correct":" wrong"):''}">
+      <div class="mono" style="font-size:11px;color:#f3e8ff;margin-bottom:10px;line-height:1.65">Q${i+1}. ${q.q}</div>
+      ${q.options.map((opt,j)=>`
+        <button class="quiz-opt${isAnswered?(j===q.correct?" correct-opt":ans===j?" wrong-opt":""):''}"
+          onclick="answerQuiz(${i},${j})" ${isAnswered?'disabled':''}>${opt}</button>
+      `).join('')}
+      ${isAnswered?`<div class="quiz-explain">${q.explain}</div>`:''}
+    </div>`;
+  }).join('');
+
+  return `<div class="flex-col">
+    <div class="panel" style="text-align:center;padding:28px;border-color:rgba(224,64,251,.3);box-shadow:0 0 30px rgba(224,64,251,.05)">
+      <div style="font-size:40px;margin-bottom:12px">🧠</div>
+      <div class="syne" style="font-size:18px;font-weight:800;color:#e040fb;margin-bottom:10px">Ads are designed to work on your brain before you start thinking.</div>
+      <div style="font-size:13px;color:#9e7ab5;line-height:1.8;max-width:520px;margin:0 auto">That's not a conspiracy — it's how they're made. Knowing the tricks doesn't mean you're smarter than the ad. It means you get one extra second to decide. One second is actually a lot.</div>
+    </div>
+
+    <div class="grid3">
+      ${CASES.slice(0,3).map(c=>`
+      <div class="panel" style="border-color:${c.color}30;box-shadow:0 0 20px ${c.color}05">
+        <div style="font-size:32px;margin-bottom:8px">${c.emoji}</div>
+        <div class="mono" style="font-size:11px;font-weight:700;color:${c.color};margin-bottom:8px">${c.brand}</div>
+        <div style="font-size:12px;color:#f3e8ff;line-height:1.65;margin-bottom:10px">${c.kidImpact}</div>
+        <div style="padding:10px;background:${c.color}10;border-radius:7px;border:1px solid ${c.color}30;font-size:12px;color:#f3e8ff;font-style:italic;line-height:1.6">💡 ${c.moral}</div>
+      </div>`).join('')}
+    </div>
+
+    <div class="panel" style="border-color:rgba(0,229,255,.2)">
+      <div class="sec-label mono">THINK BEFORE YOU BELIEVE — QUIZ</div>
+      ${qhtml}
+    </div>
+
+    <div class="panel">
+      <div class="sec-label mono">BEFORE YOU BELIEVE ANY AD — FIVE CHECKS</div>
+      ${[
+        ["Is a celebrity in it?","They were paid to be there. The fee does not require them to use the product."],
+        ["Does it make a health claim without numbers?","'Nutritious', 'immunity-boosting', 'nourishing' — these are words. Ask: how many grams? What percentage? Which study?"],
+        ["Does it make you feel bad about yourself?","Any advertisement that begins from the premise that you are currently inadequate is selling you a problem that doesn't exist."],
+        ["Does it create urgency?","'Only today', 'last chance', 'act now' — pause. If you still want it tomorrow, it was a real decision. If the panic was the only reason, that's what you were buying."],
+        ["Does the product match the advertisement?","When you get it — compare. If it doesn't match, that information is useful. You are allowed to say so."],
+      ].map(([title,desc],i)=>`
+      <div style="display:flex;gap:14px;padding:11px 0;border-bottom:1px solid #2a0028">
+        <div class="mono" style="font-size:18px;color:#ff2d78;flex-shrink:0;margin-top:2px">${i+1}</div>
+        <div>
+          <div class="mono" style="font-size:12px;color:#f3e8ff;margin-bottom:4px">${title}</div>
+          <div style="font-size:12px;color:#9e7ab5;line-height:1.55">${desc}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ── RENDER & EVENTS ───────────────────────────────────────────────────────────
+function renderTab() {
+  const content = document.getElementById('content');
+  switch(state.tab) {
+    case 0: content.innerHTML = renderChecker(); break;
+    case 1: content.innerHTML = renderRealCases(); break;
+    case 2: content.innerHTML = renderDataSources(); break;
+    case 3: content.innerHTML = renderForKids(); break;
+  }
+}
+
+function switchTab(i) {
+  state.tab = i;
+  document.querySelectorAll('.tab-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+  renderTab();
+}
+function loadSample(i) {
+  const TEXTS=["Bournvita — Tayyari Jeet Ki! Made with vitamins and minerals, helps your child grow stronger and smarter. Champions drink Bournvita every day. Give your child the champion's edge!","Royal taste, elite lifestyle. Our cardamom blend — chosen by stars, enjoyed by those who know quality. When only the best will do. A statement, not just a product.","Mummy bhook lagi! Maggi — the great family nourisher. Ready in 2 minutes, packed with the nutrition your family needs. Iron, protein, and love in every bowl.","Unlock your true potential. Lighter, brighter skin in just 4 weeks — proven by dermatologists. Your success story starts with the right glow. Don't let anything hold you back.","Our dal makhani uses 150g black dal per serving, slow-cooked 8 hours. Contains 340 kcal, 12g protein. Sourced from Punjab farms. Spice level varies slightly by batch."];
+  state.adText = TEXTS[i];
+  state.scores = null; state.aiResult = null; state.error = null;
+  renderTab();
+}
+function toggleKid() { state.kidMode=!state.kidMode; renderTab(); }
+function toggleKey() { state.showKey=!state.showKey; renderTab(); }
+function selectCase(i) { state.selectedCase=i; renderTab(); }
+function answerQuiz(qi,oi) { state.quizAnswers={...state.quizAnswers,[qi]:oi}; renderTab(); }
+
+// Init
+renderTab();
+</script>
+</body>
+</html>
